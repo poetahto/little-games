@@ -11,3 +11,18 @@ void OS_Log(const char *message)
 {
     printf("%s\n", message);
 }
+
+void OS_InitWindow(int width, int height)
+{
+    // TODO(poe): Impl
+}
+
+void OS_FreeWindow()
+{
+    // TODO(poe): Impl
+}
+
+void OS_Sleep(int milliseconds)
+{
+    // TODO(poe): Impl
+}
