@@ -1,11 +1,13 @@
 #include "os.c"
 #include "core.c"
+
 #include <stdlib.h>
 
 #define WIDTH 30
 #define HEIGHT 30
-#define MAX_SNAKE WIDTH *HEIGHT
+#define MAX_SNAKE (WIDTH * HEIGHT)
 
+typedef enum Direction Direction;
 enum Direction
 {
     UP,
@@ -22,16 +24,16 @@ struct SnakeCell
     SnakeCell* next;
 };
 
-void Entrypoint(void)
+void Entrypoint()
 {
-    enum Direction direction = DOWN;
+    Direction direction = DOWN;
 
-    uint16_t seed = 0xB00B;
+    u16 seed = 0xB00B;
 
     // TODO(sam): Don't spawn on edge
     SnakeCell* head = (SnakeCell*) malloc(sizeof(SnakeCell));
-    head->x = lfsr_fibonacci(&seed) % WIDTH;
-    head->y = lfsr_fibonacci(&seed) % HEIGHT;
-    
+    head->x = LfsrFibonacci(&seed) % WIDTH;
+    head->y = LfsrFibonacci(&seed) % HEIGHT;
+
     SnakeCell* tail = head;
 }
