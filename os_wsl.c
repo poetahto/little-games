@@ -7,6 +7,11 @@ int main(int argc, char **argv)
     return 0;
 }
 
+int OS_Timestamp(void)
+{
+    return 0;
+}
+
 void OS_Log(const char *message)
 {
     printf("%s\n", message);
