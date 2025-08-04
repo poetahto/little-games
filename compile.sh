@@ -10,7 +10,7 @@ if [ ! -v snake ] && [ ! -v poe ] && [ ! -v sam ]; then all=1; fi
 if [ -v debug ]; then echo "[debug mode]"; fi
 if [ -v release ]; then echo "[release mode]"; fi
 
-gcc_common="-Werror -Wall -lX11"
+gcc_common="-Wextra -Wall -lX11"
 gcc_debug="gcc -g -Og $gcc_common"
 gcc_release="gcc -Ofast $gcc_common"
 

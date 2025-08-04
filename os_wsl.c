@@ -1,9 +1,10 @@
 #include "os.h"
+#include "core.h"
 
 #include <stdio.h>
 #include <unistd.h>
 
-int main(int argc, char **argv)
+int main()
 {
     Entrypoint();
     return 0;
@@ -25,6 +26,9 @@ void OS_Log(const char *format, ...)
 
 void OS_InitWindow(int width, int height)
 {
+    UNUSED(width);
+    UNUSED(height);
+
     // TODO(poe): Impl
 }
 
