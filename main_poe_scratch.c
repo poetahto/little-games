@@ -2,11 +2,7 @@
 
 void Entrypoint()
 {
-    OS_Log("format test: %i", 10);
-
     OS_InitWindow(800, 600);
-    OS_Log("Created window");
-
     bool isRunning = true;
 
     while (isRunning)
@@ -18,12 +14,29 @@ void Entrypoint()
             switch (event.type)
             {
                 case OS_EVENT_QUIT: isRunning = false; break;
+                case OS_EVENT_KEY_DOWN: 
+                {
+                    switch (event.key)
+                    {
+                        case OS_KEY_ESCAPE: isRunning = false; break;
+                        case OS_KEY_UP: OS_Log("Pressed up"); break;
+                        case OS_KEY_DOWN: OS_Log("Pressed down"); break;
+                        case OS_KEY_LEFT: OS_Log("Pressed left"); break;
+                        case OS_KEY_RIGHT: OS_Log("Pressed right"); break;
+                        default: break;
+                    }
+                }
+                default: break;
             }
         }
+
+        OS_RenderClear();
+        static int x = 10;
+        const int SIZE = 25;
+        OS_RenderRect(x += SIZE, SIZE, SIZE, SIZE);
+
+        OS_Sleep(500);
     }
 
-    OS_Sleep(500);
-
     OS_FreeWindow();
-    OS_Log("Free window");
 }

@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <X11/Xlib.h>
+#include <X11/keysym.h>
 
 static Display *sDisplay = NULL;
 static Window sWindow;
@@ -16,26 +17,9 @@ int main()
     return 0;
 }
 
-int OS_Timestamp(void)
-{
-    return 0;
-}
-
-void OS_Log(const char *format, ...)
-{
-    va_list args;
-    va_start(args, format);
-    vprintf(format, args);
-    putchar('\n');
-    va_end(args);
-}
-
 // TODO(poe): Better error checking?
 void OS_InitWindow(int width, int height)
 {
-    UNUSED(width);
-    UNUSED(height);
-
     sDisplay = XOpenDisplay(NULL);
 
     if (!sDisplay)
@@ -49,7 +33,7 @@ void OS_InitWindow(int width, int height)
     XSetWindowAttributes attributes = 
     {
         .background_pixel = BlackPixel(sDisplay, sScreen),
-        .event_mask = ExposureMask | KeyPressMask,
+        .event_mask = KeyPressMask,
     };
 
     sWindow = XCreateWindow(
@@ -75,6 +59,19 @@ void OS_FreeWindow()
     if (sDisplay) XCloseDisplay(sDisplay);
 }
 
+static OS_KeyCode OS_GetKeyCode(XEvent *event)
+{
+    switch (XLookupKeysym(&event->xkey, 0))
+    {
+        case XK_Up: return OS_KEY_UP; 
+        case XK_Down: return OS_KEY_DOWN;
+        case XK_Left: return OS_KEY_LEFT;
+        case XK_Right: return OS_KEY_RIGHT;
+        case XK_Escape: return OS_KEY_ESCAPE;
+        default: return OS_KEY_NULL;
+    }
+}
+
 bool OS_PumpEvents(OS_Event *result)
 {
     if (!XPending(sDisplay))
@@ -90,17 +87,10 @@ bool OS_PumpEvents(OS_Event *result)
             result->type = OS_EVENT_QUIT; 
             break;
         }
-        case Expose: 
-        {
-            XSetForeground(sDisplay, sContext, WhitePixel(sDisplay, sScreen));
-            XFillRectangle(sDisplay, sWindow, sContext, 10, 10, 10, 10); 
-            break;
-        }
         case KeyPress:
         {
-            if (event.xkey.keycode == 9) 
-                result->type = OS_EVENT_QUIT; 
-
+            result->type = OS_EVENT_KEY_DOWN;
+            result->key = OS_GetKeyCode(&event);
             break;
         }
     }
@@ -112,4 +102,31 @@ void OS_Sleep(int milliseconds)
 {
     int microseconds = milliseconds * 1000;
     usleep(microseconds);
+}
+
+int OS_Timestamp(void)
+{
+    return 0;
+}
+
+void OS_Log(const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+    vprintf(format, args);
+    putchar('\n');
+    va_end(args);
+}
+
+// TODO(poe): Move this to a render layer
+
+void OS_RenderClear()
+{
+    XClearWindow(sDisplay, sWindow);
+}
+
+void OS_RenderRect(int x, int y, int w, int h)
+{
+    XSetForeground(sDisplay, sContext, WhitePixel(sDisplay, sScreen));
+    XFillRectangle(sDisplay, sWindow, sContext, x, y, w, h); 
 }
