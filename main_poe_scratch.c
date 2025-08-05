@@ -1,20 +1,22 @@
+#include "core.c"
 #include "os.c"
+#include "draw.c"
 
 void Entrypoint()
 {
-    OS_InitWindow(800, 600);
+    Os_InitWindow(800, 600);
     bool isRunning = true;
 
     u8 size;
-    OS_Random(&size, sizeof(size));
+    Os_Random(&size, sizeof(size));
     size %= 50;
-    OS_Log("size=%i", size);
+    Os_Log("size=%i", size);
 
     while (isRunning)
     {
-        OS_Event event;
+        Os_Event event;
 
-        while (OS_PumpEvents(&event))
+        while (Os_PumpEvents(&event))
         {
             switch (event.type)
             {
@@ -24,10 +26,10 @@ void Entrypoint()
                     switch (event.key)
                     {
                         case OS_KEY_ESCAPE: isRunning = false; break;
-                        case OS_KEY_UP: OS_Log("Pressed up"); break;
-                        case OS_KEY_DOWN: OS_Log("Pressed down"); break;
-                        case OS_KEY_LEFT: OS_Log("Pressed left"); break;
-                        case OS_KEY_RIGHT: OS_Log("Pressed right"); break;
+                        case OS_KEY_UP: Os_Log("Pressed up"); break;
+                        case OS_KEY_DOWN: Os_Log("Pressed down"); break;
+                        case OS_KEY_LEFT: Os_Log("Pressed left"); break;
+                        case OS_KEY_RIGHT: Os_Log("Pressed right"); break;
                         default: break;
                     }
                 }
@@ -35,12 +37,13 @@ void Entrypoint()
             }
         }
 
-        OS_RenderClear();
+        Draw_BeginFrame();
         static int x = 10;
-        OS_RenderRect(x += size, size, size, size);
+        Draw_Rectangle(x += size, size, size, size);
+        Draw_EndFrame();
 
-        OS_Sleep(500);
+        Os_Sleep(500);
     }
 
-    OS_FreeWindow();
+    Os_FreeWindow();
 }

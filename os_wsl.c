@@ -19,13 +19,13 @@ int main()
 }
 
 // TODO(poe): Better error checking?
-void OS_InitWindow(int width, int height)
+void Os_InitWindow(int width, int height)
 {
     sDisplay = XOpenDisplay(NULL);
 
     if (!sDisplay)
     {
-        OS_Log("Failed to open connection to X11 display server");
+        Os_Log("Failed to open connection to X11 display server");
         exit(1);
     }
 
@@ -54,13 +54,13 @@ void OS_InitWindow(int width, int height)
     XMapWindow(sDisplay, sWindow);
 }
 
-void OS_FreeWindow()
+void Os_FreeWindow()
 {
     if (sWindow) XDestroyWindow(sDisplay, sWindow);
     if (sDisplay) XCloseDisplay(sDisplay);
 }
 
-static OS_KeyCode OS_GetKeyCode(XEvent *event)
+static Os_KeyCode Os_GetKeyCode(XEvent *event)
 {
     switch (XLookupKeysym(&event->xkey, 0))
     {
@@ -73,7 +73,7 @@ static OS_KeyCode OS_GetKeyCode(XEvent *event)
     }
 }
 
-bool OS_PumpEvents(OS_Event *result)
+bool Os_PumpEvents(Os_Event *result)
 {
     if (!XPending(sDisplay))
         return false;
@@ -91,7 +91,7 @@ bool OS_PumpEvents(OS_Event *result)
         case KeyPress:
         {
             result->type = OS_EVENT_KEY_DOWN;
-            result->key = OS_GetKeyCode(&event);
+            result->key = Os_GetKeyCode(&event);
             break;
         }
     }
@@ -99,13 +99,13 @@ bool OS_PumpEvents(OS_Event *result)
     return true;
 }
 
-void OS_Sleep(int milliseconds)
+void Os_Sleep(int milliseconds)
 {
     int microseconds = milliseconds * 1000;
     usleep(microseconds);
 }
 
-void OS_Random(void *buffer, int bufferLength)
+void Os_Random(void *buffer, int bufferLength)
 {
    ssize_t count = getrandom(buffer, bufferLength, 0);
 
@@ -114,7 +114,7 @@ void OS_Random(void *buffer, int bufferLength)
    assert(count == bufferLength);
 }
 
-void OS_Log(const char *format, ...)
+void Os_Log(const char *format, ...)
 {
     va_list args;
     va_start(args, format);
@@ -125,12 +125,12 @@ void OS_Log(const char *format, ...)
 
 // TODO(poe): Move this to a render layer
 
-void OS_RenderClear()
+void Os_RenderClear()
 {
     XClearWindow(sDisplay, sWindow);
 }
 
-void OS_RenderRect(int x, int y, int w, int h)
+void Os_RenderRect(int x, int y, int w, int h)
 {
     XSetForeground(sDisplay, sContext, WhitePixel(sDisplay, sScreen));
     XFillRectangle(sDisplay, sWindow, sContext, x, y, w, h); 

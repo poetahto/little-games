@@ -3,16 +3,16 @@
 
 #include "core.h"
 
-typedef enum OS_EventType OS_EventType;
-enum OS_EventType
+typedef enum Os_EventType Os_EventType;
+enum Os_EventType
 {
     OS_EVENT_NULL,
     OS_EVENT_QUIT,
     OS_EVENT_KEY_DOWN,
 };
 
-typedef enum OS_KeyCode OS_KeyCode;
-enum OS_KeyCode
+typedef enum Os_KeyCode Os_KeyCode;
+enum Os_KeyCode
 {
     OS_KEY_NULL,
     OS_KEY_UP,
@@ -22,24 +22,24 @@ enum OS_KeyCode
     OS_KEY_ESCAPE,
 };
 
-typedef struct OS_Event OS_Event;
-struct OS_Event
+typedef struct Os_Event Os_Event;
+struct Os_Event
 {
-    OS_EventType type;
-    OS_KeyCode key;
+    Os_EventType type;
+    Os_KeyCode key;
 };
 
 // NOTE(poe): Cross-platform main function - should always be defined.
 void Entrypoint(void);
 
-void OS_InitWindow(int width, int height);
-void OS_FreeWindow();
-bool OS_PumpEvents(OS_Event *event);
-void OS_Sleep(int milliseconds);
-void OS_Random(void *buffer, int bufferLength);
-void OS_Log(const char *message, ...);
+void Os_InitWindow(int width, int height);
+void Os_FreeWindow();
+bool Os_PumpEvents(Os_Event *event);
+void Os_Sleep(int milliseconds);
+void Os_Random(void *buffer, int bufferLength);
+void Os_Log(const char *message, ...);
 
-void OS_RenderRect(int x, int y, int w, int h);
-void OS_RenderClear();
+void Os_RenderRect(int x, int y, int w, int h);
+void Os_RenderClear();
 
 #endif // GAMES_OS_H

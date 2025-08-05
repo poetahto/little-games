@@ -7,6 +7,6 @@ void Entrypoint()
 
     for (int i = 0; i < 10; i++) {
         u16 rnd = LfsrFibonacci(&seed);
-        OS_Log("%u", rnd);
+        Os_Log("%u", rnd);
     }
 }
