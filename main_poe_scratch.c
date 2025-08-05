@@ -40,7 +40,7 @@ void Entrypoint()
         Draw_BeginFrame();
         Draw_Grid(size);
         static int x = 0;
-        Draw_Rectangle(x += size, size, size, size);
+        Draw_Rectangle(x += size, size, size, size, DRAW_YELLOW);
         Draw_EndFrame();
 
         Os_Sleep(500);

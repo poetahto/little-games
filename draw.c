@@ -53,8 +53,9 @@ void Draw_Text(int x, int y, const char *format, ...)
     Os_RenderText(x, y, buffer, length);
 }
 
-void Draw_Rectangle(int x, int y, int w, int h)
+void Draw_Rectangle(int x, int y, int w, int h, Draw_Color color)
 {
+    Os_RenderSetColor(color.r, color.g, color.b);
     Os_RenderRect(x, y, w, h);
 }
 
@@ -65,6 +66,8 @@ void Draw_Line(int x1, int y1, int x2, int y2)
 
 void Draw_Grid(int spacing)
 {
+    float tint = 0.1;
+    Os_RenderSetColor(tint, tint, tint);
     Os_Size size = Os_GetWindowSize();
 
     for (int x = 0; x < size.width; x += spacing)
