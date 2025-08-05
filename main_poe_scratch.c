@@ -5,6 +5,11 @@ void Entrypoint()
     OS_InitWindow(800, 600);
     bool isRunning = true;
 
+    u8 size;
+    OS_Random(&size, sizeof(size));
+    size %= 50;
+    OS_Log("size=%i", size);
+
     while (isRunning)
     {
         OS_Event event;
@@ -32,8 +37,7 @@ void Entrypoint()
 
         OS_RenderClear();
         static int x = 10;
-        const int SIZE = 25;
-        OS_RenderRect(x += SIZE, SIZE, SIZE, SIZE);
+        OS_RenderRect(x += size, size, size, size);
 
         OS_Sleep(500);
     }

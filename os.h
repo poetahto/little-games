@@ -36,7 +36,7 @@ void OS_InitWindow(int width, int height);
 void OS_FreeWindow();
 bool OS_PumpEvents(OS_Event *event);
 void OS_Sleep(int milliseconds);
-int OS_Timestamp();
+void OS_Random(void *buffer, int bufferLength);
 void OS_Log(const char *message, ...);
 
 void OS_RenderRect(int x, int y, int w, int h);

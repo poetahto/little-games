@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <assert.h>
 
 #define UNUSED(val) val = val
 

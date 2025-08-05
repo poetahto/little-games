@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <sys/random.h>
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 
@@ -104,9 +105,13 @@ void OS_Sleep(int milliseconds)
     usleep(microseconds);
 }
 
-int OS_Timestamp(void)
+void OS_Random(void *buffer, int bufferLength)
 {
-    return 0;
+   ssize_t count = getrandom(buffer, bufferLength, 0);
+
+   // NOTE(poe): I don't entirely understand when this could fail, hence 
+   // this curiosity-driven assert.
+   assert(count == bufferLength);
 }
 
 void OS_Log(const char *format, ...)
