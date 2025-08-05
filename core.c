@@ -1,5 +1,6 @@
 #include "core.h"
 #include <stdlib.h>
+#include <string.h>
 
 u16 LfsrFibonacci(u16 *lfsr)
 {
@@ -51,3 +52,7 @@ void HeapFree(void *buffer)
     free(buffer);
 }
 
+void MemoryClear(void *buffer, int sizeBytes)
+{
+    memset(buffer, 0, sizeBytes);
+}

@@ -2,7 +2,6 @@
 #include "core.c"
 #include "draw.c"
 
-
 #define CELL_SIZE 50
 #define MAX_SNAKE (WIDTH * HEIGHT)
 
@@ -32,42 +31,39 @@ struct World
     bool* data;
 };
 
+static void DrawPoint(Point point, int size, Draw_Color color);
+static int GetPointIndex(World world, Point point);
+static void SetPoint(World world, Point point);
+static void ClearPoint(World world, Point point);
+static bool CheckPoint(World world, Point point);
+static Point GetRandomPoint(World world, u16 *seed);
+static Point GetPointRelative(Point point, Direction direction);
+
 void Entrypoint()
 {
     Draw_Startup();
     Os_InitWindow(800, 600);
 
     u16 seed; Os_Random(&seed, sizeof(seed));
-
     Os_Size windowSize = Os_GetWindowSize();
 
-    World world = {
-        .width = windowSize.width / CELL_SIZE,
-        .height = windowSize.height / CELL_SIZE,
-    };
+    World world;
+    world.width = windowSize.width / CELL_SIZE;
+    world.height = windowSize.height / CELL_SIZE;
     world.length = world.width * world.height;
     world.sizeBytes = sizeof(bool) * world.length;
     world.data = HeapAlloc(world.sizeBytes);
+    MemoryClear(world.data, world.sizeBytes);
 
-    for (int i = 0; i < world.length; ++i) {
-        world.data[i] = false;
-    }
-
-    Direction direction = DOWN;
     int cX = world.width / 2;
     int cY = world.height / 2;
-    Point head = { .x = cX, .y = cY - 1 };
-    Point tail = { .x = cX, .y = cY };
+    Point head = { .x = cX, .y = cY };
+    SetPoint(world, head);
 
-    world.data[world.width * (cY - 1) + cX] = 1;
-    world.data[world.width * cY + cX] = 1;
-    
-
-    Point food;
-    food.x = LfsrFibonacci(&seed) % world.width;
-    food.y = LfsrFibonacci(&seed) % world.height;
-
+    Point food = GetRandomPoint(world, &seed);
+    Direction direction = DOWN;
     bool isRunning = true;
+
     while (isRunning)
     {
         Os_Event event;
@@ -93,33 +89,80 @@ void Entrypoint()
             }
         }
 
+        // TODO(poe): Needs to support updating the whole list, this was the
+        // best I could figure w/ the data structure right now
+        Point next = GetPointRelative(head, direction);
+        SetPoint(world, next);
+        ClearPoint(world, head);
+        head = next;
+
         Draw_BeginFrame();
         Draw_Grid(CELL_SIZE);
-
-        switch (direction)
-        {
-            case UP: snake.cells[0].y--; break;
-            case DOWN: snake.cells[0].y++; break;
-            case LEFT: snake.cells[0].x--; break;
-            case RIGHT: snake.cells[0].x++; break;
-            default: break;
-        }
-
-        snake.cells[snake.length - 1].x = oldX;
-        snake.cells[snake.length - 1].y = oldY;
+        DrawPoint(food, CELL_SIZE, DRAW_YELLOW);
         
-        for (int i = 0; i < snake.length; ++i) {
-            Draw_Rectangle(snake.cells[i].x * CELL_SIZE, snake.cells[i].y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+        for (int x = 0; x < world.width; x++)
+        {
+            for (int y = 0; y < world.height; y++)
+            {
+                Point point = { .x = x, .y = y };
+
+                if (CheckPoint(world, point))
+                    DrawPoint(point, CELL_SIZE, DRAW_WHITE);
+            }
         }
-
+        
         Draw_EndFrame();
-
         Os_Sleep(500);
     }
 
     Os_FreeWindow();
-
-    // Subsystem shutdown
     Draw_Shutdown();
+}
 
+static void DrawPoint(Point point, int size, Draw_Color color)
+{
+    Os_Size windowSize = Os_GetWindowSize();
+    Draw_Rectangle(point.x * size, windowSize.height - (point.y * size), size, size, color);
+}
+
+static int GetPointIndex(World world, Point point)
+{
+    // NOTE(poe): Put the vibe code to the test here
+    return world.width * point.y + point.x;
+}
+
+static void SetPoint(World world, Point point)
+{
+    world.data[GetPointIndex(world, point)] = true;
+}
+
+static void ClearPoint(World world, Point point)
+{
+    world.data[GetPointIndex(world, point)] = false;
+}
+
+static bool CheckPoint(World world, Point point)
+{
+    return world.data[GetPointIndex(world, point)];
+}
+
+static Point GetRandomPoint(World world, u16 *seed)
+{
+    return (Point) 
+    { 
+        .x = LfsrFibonacci(seed) % world.width, 
+        .y = LfsrFibonacci(seed) % world.height, 
+    };
+}
+
+static Point GetPointRelative(Point point, Direction direction)
+{
+    switch (direction)
+    {
+        case UP: return (Point) { .x = point.x, .y = point.y + 1 };
+        case DOWN: return (Point) { .x = point.x, .y = point.y - 1 };
+        case LEFT: return (Point) { .x = point.x - 1, .y = point.y };
+        case RIGHT: return (Point) { .x = point.x + 1, .y = point.y };
+        default: assert(false && "Invalid direction");
+    }
 }
