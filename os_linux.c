@@ -7,11 +7,20 @@
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 
-static Display *sDisplay = NULL;
-static Window sWindow;
-static int sScreen;
-static GC sContext;
-static Os_Size sSize;
+typedef struct Os_Context Os_Context;
+struct Os_Context
+{
+    Display *display;
+    Window window;
+    int screen;
+    GC context;
+    Os_Size size;
+};
+
+static Os_Context sOsContext;
+
+static Os_Size Os_QueryWindowSize(Display *display, Window window);
+static Os_KeyCode Os_GetKeyCode(XEvent *event);
 
 int main()
 {
@@ -19,28 +28,18 @@ int main()
     return 0;
 }
 
-static void Os_UpdateWindowSize()
-{
-    Window root;
-    int x, y;
-    unsigned int w, h, bw, d;
-    XGetGeometry(sDisplay, sWindow, &root, &x, &y, &w, &h, &bw, &d); 
-    sSize.width = w;
-    sSize.height = h;
-}
-
 // TODO(poe): Better error checking?
 void Os_InitWindow(int width, int height)
 {
-    sDisplay = XOpenDisplay(NULL);
+    Display *display = XOpenDisplay(NULL);
 
-    if (!sDisplay)
+    if (!display)
     {
         Os_Log("Failed to open connection to X11 display server");
         exit(1);
     }
 
-    sScreen = DefaultScreen(sDisplay);
+    int screen = DefaultScreen(display);
 
     long eventMask = 0;
     eventMask |= KeyPressMask;
@@ -50,13 +49,13 @@ void Os_InitWindow(int width, int height)
 
     XSetWindowAttributes attributes = 
     {
-        .background_pixel = BlackPixel(sDisplay, sScreen),
+        .background_pixel = BlackPixel(display, screen),
         .event_mask = eventMask,
     };
 
-    sWindow = XCreateWindow(
-        sDisplay,                       // display
-        RootWindow(sDisplay, sScreen),   // parent window
+    Window window = XCreateWindow(
+        display,                        // display
+        RootWindow(display, screen),    // parent window
         0, 0,                           // position
         width, height,                  // size
         0,                              // border width
@@ -66,44 +65,43 @@ void Os_InitWindow(int width, int height)
         CWBackPixel | CWEventMask,      // which attributes are being set 
         &attributes);
 
-    sContext = XCreateGC(sDisplay, sWindow, 0, NULL);
-    XStoreName(sDisplay, sWindow, "Game Window");
-    XMapWindow(sDisplay, sWindow);
+    GC context = XCreateGC(display, window, 0, NULL);
+    XStoreName(display, window, "Game Window");
+    XMapWindow(display, window);
 
-    Os_UpdateWindowSize();
+    sOsContext = (Os_Context)
+    {
+        .window = window,
+        .screen = screen,
+        .display = display,
+        .context = context,
+        .size = Os_QueryWindowSize(display, window),
+    };
 }
 
 void Os_FreeWindow()
 {
-    if (sWindow) XDestroyWindow(sDisplay, sWindow);
-    if (sDisplay) XCloseDisplay(sDisplay);
+    Display *display = sOsContext.display;
+    Window window = sOsContext.window;
+
+    XDestroyWindow(display, window);
+    if (display) XCloseDisplay(display);
 }
 
 Os_Size Os_GetWindowSize()
 {
-    return sSize;
-}
-
-static Os_KeyCode Os_GetKeyCode(XEvent *event)
-{
-    switch (XLookupKeysym(&event->xkey, 0))
-    {
-        case XK_Up: return OS_KEY_UP; 
-        case XK_Down: return OS_KEY_DOWN;
-        case XK_Left: return OS_KEY_LEFT;
-        case XK_Right: return OS_KEY_RIGHT;
-        case XK_Escape: return OS_KEY_ESCAPE;
-        default: return OS_KEY_NULL;
-    }
+    return sOsContext.size;
 }
 
 bool Os_PumpEvents(Os_Event *result)
 {
-    if (!XPending(sDisplay))
+    Display *display = sOsContext.display;
+
+    if (!XPending(display))
         return false;
 
     XEvent event;
-    XNextEvent(sDisplay, &event);
+    XNextEvent(display, &event);
 
     switch (event.type)
     {
@@ -120,7 +118,11 @@ bool Os_PumpEvents(Os_Event *result)
         }
         case ConfigureNotify:
         {
-            Os_UpdateWindowSize();
+            sOsContext.size = (Os_Size) 
+            {
+                .width = event.xconfigure.width,
+                .height = event.xconfigure.height,
+            };
             break;
         }
     }
@@ -156,23 +158,69 @@ void Os_Log(const char *format, ...)
 
 void Os_RenderClear()
 {
-    XClearWindow(sDisplay, sWindow);
+    Window window = sOsContext.window;
+    Display *display = sOsContext.display;
+
+    XClearWindow(display, window);
+}
+
+void Os_RenderSetColor(float r, float g, float b)
+{
+    Display *display = sOsContext.display;
+    GC context = sOsContext.context;
+
+    int ir = 255 * r;
+    int ig = 255 * g;
+    int ib = 255 * b;
+    unsigned long color = ib + (ig << 8) + (ir << 16);
+    XSetForeground(display, context, color);
 }
 
 void Os_RenderRect(int x, int y, int w, int h)
 {
-    XSetForeground(sDisplay, sContext, WhitePixel(sDisplay, sScreen));
-    XFillRectangle(sDisplay, sWindow, sContext, x, y, w, h); 
+    Window window = sOsContext.window;
+    Display *display = sOsContext.display;
+    GC context = sOsContext.context;
+
+    XFillRectangle(display, window, context, x, y, w, h); 
 }
 
 void Os_RenderText(int x, int y, const char *value, int valueLength)
 {
-    XSetForeground(sDisplay, sContext, WhitePixel(sDisplay, sScreen));
-    XDrawString(sDisplay, sWindow, sContext, x, y, value, valueLength); 
+    Window window = sOsContext.window;
+    Display *display = sOsContext.display;
+    GC context = sOsContext.context;
+
+    XDrawString(display, window, context, x, y, value, valueLength); 
 }
 
 void Os_RenderLine(int x1, int y1, int x2, int y2)
 {
-    XSetForeground(sDisplay, sContext, WhitePixel(sDisplay, sScreen));
-    XDrawLine(sDisplay, sWindow, sContext, x1, y1, x2, y2);
+    Window window = sOsContext.window;
+    Display *display = sOsContext.display;
+    GC context = sOsContext.context;
+
+    XDrawLine(display, window, context, x1, y1, x2, y2);
+}
+
+static Os_Size Os_QueryWindowSize(Display *display, Window window)
+{
+    Window root;
+    int x, y;
+    unsigned int w, h, bw, d;
+    XGetGeometry(display, window, &root, &x, &y, &w, &h, &bw, &d); 
+    return (Os_Size) { .width = w, .height = h };
+}
+
+static Os_KeyCode Os_GetKeyCode(XEvent *event)
+{
+    switch (XLookupKeysym(&event->xkey, 0))
+    {
+        case XK_Up: return OS_KEY_UP; 
+        case XK_Down: return OS_KEY_DOWN;
+        case XK_Left: return OS_KEY_LEFT;
+        case XK_Right: return OS_KEY_RIGHT;
+        case XK_Escape: return OS_KEY_ESCAPE;
+        default: return OS_KEY_NULL;
+    }
 }

@@ -49,6 +49,7 @@ void Os_Log(const char *message, ...);
 
 void Os_RenderRect(int x, int y, int w, int h);
 void Os_RenderClear();
+void Os_RenderSetColor(float r, float g, float b);
 void Os_RenderText(int x, int y, const char *value, int valueLength);
 void Os_RenderLine(int x1, int y1, int x2, int y2);
 
