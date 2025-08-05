@@ -29,11 +29,19 @@ struct Os_Event
     Os_KeyCode key;
 };
 
+typedef struct Os_Size Os_Size;
+struct Os_Size
+{
+    int width;
+    int height;
+};
+
 // NOTE(poe): Cross-platform main function - should always be defined.
 void Entrypoint(void);
 
 void Os_InitWindow(int width, int height);
 void Os_FreeWindow();
+Os_Size Os_GetWindowSize();
 bool Os_PumpEvents(Os_Event *event);
 void Os_Sleep(int milliseconds);
 void Os_Random(void *buffer, int bufferLength);
@@ -41,5 +49,7 @@ void Os_Log(const char *message, ...);
 
 void Os_RenderRect(int x, int y, int w, int h);
 void Os_RenderClear();
+void Os_RenderText(int x, int y, const char *value, int valueLength);
+void Os_RenderLine(int x1, int y1, int x2, int y2);
 
 #endif // GAMES_OS_H

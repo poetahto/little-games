@@ -11,11 +11,22 @@ static Display *sDisplay = NULL;
 static Window sWindow;
 static int sScreen;
 static GC sContext;
+static Os_Size sSize;
 
 int main()
 {
     Entrypoint();
     return 0;
+}
+
+static void Os_UpdateWindowSize()
+{
+    Window root;
+    int x, y;
+    unsigned int w, h, bw, d;
+    XGetGeometry(sDisplay, sWindow, &root, &x, &y, &w, &h, &bw, &d); 
+    sSize.width = w;
+    sSize.height = h;
 }
 
 // TODO(poe): Better error checking?
@@ -31,10 +42,16 @@ void Os_InitWindow(int width, int height)
 
     sScreen = DefaultScreen(sDisplay);
 
+    long eventMask = 0;
+    eventMask |= KeyPressMask;
+    eventMask |= VisibilityChangeMask;
+    eventMask |= StructureNotifyMask;
+    eventMask |= ExposureMask;
+
     XSetWindowAttributes attributes = 
     {
         .background_pixel = BlackPixel(sDisplay, sScreen),
-        .event_mask = KeyPressMask,
+        .event_mask = eventMask,
     };
 
     sWindow = XCreateWindow(
@@ -52,12 +69,19 @@ void Os_InitWindow(int width, int height)
     sContext = XCreateGC(sDisplay, sWindow, 0, NULL);
     XStoreName(sDisplay, sWindow, "Game Window");
     XMapWindow(sDisplay, sWindow);
+
+    Os_UpdateWindowSize();
 }
 
 void Os_FreeWindow()
 {
     if (sWindow) XDestroyWindow(sDisplay, sWindow);
     if (sDisplay) XCloseDisplay(sDisplay);
+}
+
+Os_Size Os_GetWindowSize()
+{
+    return sSize;
 }
 
 static Os_KeyCode Os_GetKeyCode(XEvent *event)
@@ -92,6 +116,11 @@ bool Os_PumpEvents(Os_Event *result)
         {
             result->type = OS_EVENT_KEY_DOWN;
             result->key = Os_GetKeyCode(&event);
+            break;
+        }
+        case ConfigureNotify:
+        {
+            Os_UpdateWindowSize();
             break;
         }
     }
@@ -140,4 +169,10 @@ void Os_RenderText(int x, int y, const char *value, int valueLength)
 {
     XSetForeground(sDisplay, sContext, WhitePixel(sDisplay, sScreen));
     XDrawString(sDisplay, sWindow, sContext, x, y, value, valueLength); 
+}
+
+void Os_RenderLine(int x1, int y1, int x2, int y2)
+{
+    XSetForeground(sDisplay, sContext, WhitePixel(sDisplay, sScreen));
+    XDrawLine(sDisplay, sWindow, sContext, x1, y1, x2, y2);
 }

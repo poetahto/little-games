@@ -9,10 +9,7 @@ void Entrypoint()
 
     Os_InitWindow(800, 600);
 
-    u8 size;
-    Os_Random(&size, sizeof(size));
-    size %= 50;
-    Os_Log("size=%i", size);
+    int size = 50;
 
     bool isRunning = true;
     while (isRunning)
@@ -41,9 +38,9 @@ void Entrypoint()
         }
 
         Draw_BeginFrame();
-        static int x = 10;
+        Draw_Grid(size);
+        static int x = 0;
         Draw_Rectangle(x += size, size, size, size);
-        Draw_Text(50, 50, "Hello, world! x=%i", x);
         Draw_EndFrame();
 
         Os_Sleep(500);

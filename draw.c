@@ -57,3 +57,19 @@ void Draw_Rectangle(int x, int y, int w, int h)
 {
     Os_RenderRect(x, y, w, h);
 }
+
+void Draw_Line(int x1, int y1, int x2, int y2)
+{
+    Os_RenderLine(x1, y1, x2, y2);
+}
+
+void Draw_Grid(int spacing)
+{
+    Os_Size size = Os_GetWindowSize();
+
+    for (int x = 0; x < size.width; x += spacing)
+        Os_RenderLine(x, 0, x, size.height);
+
+    for (int y = 0; y < size.height; y += spacing)
+        Os_RenderLine(0, y, size.width, y);
+}
