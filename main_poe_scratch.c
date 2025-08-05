@@ -1,35 +1,34 @@
 #include "core.c"
 #include "os.c"
 #include "draw.c"
+#include "wm.c"
 
 void Entrypoint()
 {
-    // Subsystem startup
+    Wm_Startup(800, 600);
     Draw_Startup();
 
-    Os_InitWindow(800, 600);
-
     int size = 50;
-
     bool isRunning = true;
+
     while (isRunning)
     {
-        Os_Event event;
+        Wm_Event event;
 
-        while (Os_PumpEvents(&event))
+        while (Wm_PumpEvents(&event))
         {
             switch (event.type)
             {
-                case OS_EVENT_QUIT: isRunning = false; break;
-                case OS_EVENT_KEY_DOWN: 
+                case WM_EVENT_QUIT: isRunning = false; break;
+                case WM_EVENT_KEY_DOWN: 
                 {
                     switch (event.key)
                     {
-                        case OS_KEY_ESCAPE: isRunning = false; break;
-                        case OS_KEY_UP: Os_Log("Pressed up"); break;
-                        case OS_KEY_DOWN: Os_Log("Pressed down"); break;
-                        case OS_KEY_LEFT: Os_Log("Pressed left"); break;
-                        case OS_KEY_RIGHT: Os_Log("Pressed right"); break;
+                        case WM_KEY_ESCAPE: isRunning = false; break;
+                        case WM_KEY_UP: Os_Log("Pressed up"); break;
+                        case WM_KEY_DOWN: Os_Log("Pressed down"); break;
+                        case WM_KEY_LEFT: Os_Log("Pressed left"); break;
+                        case WM_KEY_RIGHT: Os_Log("Pressed right"); break;
                         default: break;
                     }
                 }
@@ -46,8 +45,6 @@ void Entrypoint()
         Os_Sleep(500);
     }
 
-    Os_FreeWindow();
-
-    // Subsystem shutdown
     Draw_Shutdown();
+    Wm_Shutdown();
 }
