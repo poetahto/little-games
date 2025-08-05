@@ -4,14 +4,17 @@
 
 void Entrypoint()
 {
+    // Subsystem startup
+    Draw_Startup();
+
     Os_InitWindow(800, 600);
-    bool isRunning = true;
 
     u8 size;
     Os_Random(&size, sizeof(size));
     size %= 50;
     Os_Log("size=%i", size);
 
+    bool isRunning = true;
     while (isRunning)
     {
         Os_Event event;
@@ -40,10 +43,14 @@ void Entrypoint()
         Draw_BeginFrame();
         static int x = 10;
         Draw_Rectangle(x += size, size, size, size);
+        Draw_Text(50, 50, "Hello, world! x=%i", x);
         Draw_EndFrame();
 
         Os_Sleep(500);
     }
 
     Os_FreeWindow();
+
+    // Subsystem shutdown
+    Draw_Shutdown();
 }

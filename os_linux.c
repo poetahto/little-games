@@ -135,3 +135,9 @@ void Os_RenderRect(int x, int y, int w, int h)
     XSetForeground(sDisplay, sContext, WhitePixel(sDisplay, sScreen));
     XFillRectangle(sDisplay, sWindow, sContext, x, y, w, h); 
 }
+
+void Os_RenderText(int x, int y, const char *value, int valueLength)
+{
+    XSetForeground(sDisplay, sContext, WhitePixel(sDisplay, sScreen));
+    XDrawString(sDisplay, sWindow, sContext, x, y, value, valueLength); 
+}

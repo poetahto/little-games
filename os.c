@@ -1,2 +1,7 @@
-// TODO(poe): Figure out how to ifdef WSL
-#include "os_wsl.c"
+#ifdef OS_WIN32
+    #include "os_win32.c"
+#endif
+
+#ifdef OS_LINUX
+    #include "os_linux.c"
+#endif
