@@ -1,6 +1,7 @@
 #include "core.h"
 #include "draw.h"
 #include "wm.h"
+#include "gpu.h"
 
 typedef struct Draw_Context Draw_Context;
 struct Draw_Context
@@ -23,16 +24,21 @@ void Draw_Shutdown()
 void Draw_BeginFrame()
 {
     ArenaReset(&s_DrawContext.tempArena);
-    Wm_RenderClear();
+    Gpu_Clear(0.2f, 0.4f, 0.6f);
 }
 
 void Draw_EndFrame()
 {
-    // NOTE(poe): Nothing for now.
+    Gpu_Present();
 }
 
 void Draw_Text(int x, int y, const char *format, ...)
 {
+    UNUSED(x);
+    UNUSED(y);
+    UNUSED(format);
+
+    /*
     va_list args; 
 
     // Figure out how much space we need to store the format string
@@ -51,21 +57,31 @@ void Draw_Text(int x, int y, const char *format, ...)
 
     // Render
     Wm_RenderText(x, y, buffer, length);
+    */
 }
 
 void Draw_Rectangle(int x, int y, int w, int h, Draw_Color color)
 {
-    Wm_RenderSetColor(color.r, color.g, color.b);
-    Wm_RenderRect(x, y, w, h);
+    UNUSED(x);
+    UNUSED(y);
+    UNUSED(w);
+    UNUSED(h);
+    UNUSED(color);
 }
 
 void Draw_Line(int x1, int y1, int x2, int y2)
 {
-    Wm_RenderLine(x1, y1, x2, y2);
+    UNUSED(x1);
+    UNUSED(y1);
+    UNUSED(x2);
+    UNUSED(y2);
 }
 
 void Draw_Grid(int spacing)
 {
+    UNUSED(spacing);
+
+    /*
     float tint = 0.1;
     Wm_RenderSetColor(tint, tint, tint);
 
@@ -77,4 +93,5 @@ void Draw_Grid(int spacing)
 
     for (int y = 0; y < height; y += spacing)
         Wm_RenderLine(0, y, width, y);
+    */
 }

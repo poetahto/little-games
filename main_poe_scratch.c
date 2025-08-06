@@ -2,10 +2,12 @@
 #include "os.c"
 #include "draw.c"
 #include "wm.c"
+#include "gpu.c"
 
 void Entrypoint()
 {
     Wm_Startup(800, 600);
+    Gpu_Startup();
     Draw_Startup();
 
     int size = 50;
@@ -46,5 +48,6 @@ void Entrypoint()
     }
 
     Draw_Shutdown();
+    Gpu_Shutdown();
     Wm_Shutdown();
 }

@@ -31,13 +31,6 @@ void Wm_Startup(int width, int height);
 void Wm_Shutdown();
 void Wm_GetWindowSize(int *width, int *height);
 bool Wm_PumpEvents(Wm_Event *event);
-
-// Software rendering
-
-void Wm_RenderClear();
-void Wm_RenderSetColor(float r, float g, float b);
-void Wm_RenderRect(int x, int y, int w, int h);
-void Wm_RenderLine(int x1, int y1, int x2, int y2);
-void Wm_RenderText(int x, int y, const char *value, int valueLength);
+void *Wm_GetNativeHandle(void);
 
 #endif // GAMES_WM_H
