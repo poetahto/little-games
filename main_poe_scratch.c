@@ -3,6 +3,7 @@
 #include "draw.c"
 #include "wm.c"
 #include "gpu.c"
+#include "profile.c"
 
 void Entrypoint()
 {

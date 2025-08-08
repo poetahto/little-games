@@ -1,5 +1,7 @@
 #include "core.h"
+
 #include <stdlib.h>
+#include <string.h>
 
 u16 LfsrFibonacci(u16 *lfsr)
 {
@@ -51,3 +53,27 @@ void HeapFree(void *buffer)
     free(buffer);
 }
 
+void MemoryCopy(void *dest, const void *src, int count)
+{
+    memcpy(dest, src, count);
+}
+
+Float2 CreateFloat2(float x, float y)
+{
+    return (Float2) { .x = x, .y = y };
+}
+
+Float2 AddFloat2(Float2 a, Float2 b)
+{
+    return CreateFloat2(a.x + b.x, a.y + b.y);
+}
+
+Float2 SubtractFloat2(Float2 a, Float2 b)
+{
+    return CreateFloat2(a.x - b.x, a.y - b.y);
+}
+
+Float2 ScaleFloat2(Float2 a, Float2 b)
+{
+    return CreateFloat2(a.x * b.x, a.y * b.y);
+}

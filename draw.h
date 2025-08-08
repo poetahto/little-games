@@ -17,7 +17,7 @@ void Draw_BeginFrame();
 void Draw_EndFrame();
 void Draw_Text(int x, int y, const char *format, ...);
 void Draw_Rectangle(int x, int y, int w, int h, Draw_Color color);
-void Draw_Line(int x1, int y1, int x2, int y2);
+void Draw_Line(int x1, int y1, int x2, int y2, Draw_Color color);
 void Draw_Grid(int spacing);
 
 #endif // GAMES_DRAW_H

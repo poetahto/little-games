@@ -1,4 +1,5 @@
 #include "wm.h"
+#include "profile.h"
 
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
@@ -9,7 +10,6 @@ struct Wm_Context
     Display *display;
     Window window;
     int screen;
-    GC gc;
     int width;
     int height;
 };
@@ -20,51 +20,55 @@ static Wm_KeyCode Wm_GetKeyCode(XEvent *event);
 
 void Wm_Startup(int width, int height)
 {
+    Os_Log("Initializing X11");
     Wm_Context ctx;
 
-    Os_Log("Opening connection to X11 server");
-    ctx.display = XOpenDisplay(NULL);
-
-    if (!ctx.display)
+    PROFILE("Open display")
     {
-        Os_Log("Failed to open connection to X11 display server");
-        exit(1);
+        ctx.display = XOpenDisplay(NULL);
+
+        if (!ctx.display)
+        {
+            Os_Log("Failed to open connection to X11 display server");
+            exit(1);
+        }
+
+        ctx.screen = DefaultScreen(ctx.display);
     }
 
-    Os_Log("Creating X11 window");
-    ctx.screen = DefaultScreen(ctx.display);
-
-    XSetWindowAttributes attributes = 
+    PROFILE("Create window")
     {
-        .background_pixel = BlackPixel(ctx.display, ctx.screen),
-        .event_mask = 0 
-            | KeyPressMask 
-            | VisibilityChangeMask 
-            | StructureNotifyMask 
-            | ExposureMask
-            ,
-    };
+        XSetWindowAttributes attributes = 
+        {
+            .background_pixel = BlackPixel(ctx.display, ctx.screen),
+            .event_mask = 0 
+                | KeyPressMask 
+                | VisibilityChangeMask 
+                | StructureNotifyMask 
+                | ExposureMask
+                ,
+        };
 
-    ctx.window = XCreateWindow(
-        ctx.display,                         // display
-        RootWindow(ctx.display, ctx.screen), // parent window
-        0, 0,                                // position
-        width, height,                       // size
-        0,                                   // border width
-        CopyFromParent,                      // depth
-        InputOutput,                         // class
-        CopyFromParent,                      // visual
-        CWBackPixel | CWEventMask,           // the attributes being set 
-        &attributes);
+        ctx.window = XCreateWindow(
+            ctx.display,                         // display
+            RootWindow(ctx.display, ctx.screen), // parent window
+            0, 0,                                // position
+            width, height,                       // size
+            0,                                   // border width
+            CopyFromParent,                      // depth
+            InputOutput,                         // class
+            CopyFromParent,                      // visual
+            CWBackPixel | CWEventMask,           // the attributes being set 
+            &attributes);
 
-    ctx.gc = XCreateGC(ctx.display, ctx.window, 0, NULL);
-    XStoreName(ctx.display, ctx.window, "Game Window");
-    XMapWindow(ctx.display, ctx.window);
+        XStoreName(ctx.display, ctx.window, "Game Window");
+        XMapWindow(ctx.display, ctx.window);
+    }
 
     // Figure out our _actual_ size, in case the window manager decided
     // to give us something we didn't request.
+    PROFILE("Get window size")
     {
-        Os_Log("Getting X11 window size");
         Window r;
         int x, y;
         unsigned int w, h, bw, d;
