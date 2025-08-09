@@ -330,9 +330,11 @@ static GLuint Gpu_CreateProgram(const char *vsSource, const char *fsSource)
 #include "extern/egl.h"
 #undef GLAD_EGL_IMPLEMENTATION
 
-static EGLDisplay s_EGLDisplay;
-static EGLSurface s_EGLSurface;
-static EGLContext s_EGLContext;
+typedef struct {
+    EGLDisplay display;
+    EGLSurface surface;
+    EGLContext context;
+} Gpu_LinuxContext gpuLinux;
 
 static void Gpu_LinuxStartup()
 {
@@ -347,45 +349,51 @@ static void Gpu_LinuxStartup()
         EGL_NONE
     };
 
-    EGLBoolean success;
-    success = gladLoaderLoadEGL(NULL);
-    assert(success);
+#define CHECK(expr) if (!(expr)) assert(false)
+    CHECK(gladLoaderLoadEGL(NULL));
+    CHECK(eglBindAPI(EGL_OPENGL_API));
     EGLDisplay display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-    assert(display != EGL_NO_DISPLAY);
-    success = eglInitialize(display, NULL, NULL);
-    assert(success);
-    success = gladLoaderLoadEGL(display);
-    assert(success);
+    CHECK(display != EGL_NO_DISPLAY);
+    CHECK(eglInitialize(display, NULL, NULL));
+    CHECK(gladLoaderLoadEGL(display));
     EGLConfig config;
     EGLint configCount;
-    eglChooseConfig(display, attributes, &config, 1, &configCount);
-    assert(configCount >= 1);
-    EGLNativeWindowType window = (EGLNativeWindowType)Os_GetNativeWindowHandle();
-    EGLSurface surface = eglCreateWindowSurface(display, config, window, NULL);
-    assert(surface != EGL_NO_SURFACE);
-    eglBindAPI(EGL_OPENGL_API);
+    CHECK(eglChooseConfig(display, attributes, &config, 1, &configCount));
+    CHECK(configCount >= 1);
     EGLContext context = eglCreateContext(display, config, EGL_NO_CONTEXT, NULL);
-    assert(context != EGL_NO_CONTEXT);
-    success = eglMakeCurrent(display, surface, surface, context);
-    assert(success);
-    success = gladLoaderLoadGL();
-    assert(success);
+    CHECK(context != EGL_NO_CONTEXT);
+    EGLNativeWindowType window = (EGLNativeWindowType)Os_GetNativeWindowHandle();
+    CHECK(window);
+    EGLSurface surface = eglCreateWindowSurface(display, config, window, NULL);
+    CHECK(surface != EGL_NO_SURFACE);
+    CHECK(eglMakeCurrent(display, surface, surface, context));
+    CHECK(gladLoaderLoadGL());
+#undef CHECK
 
-    s_EGLDisplay = display;
-    s_EGLSurface = surface;
-    s_EGLContext = context;
+    gpuLinux = (Gpu_LinuxContext) {
+        .display = display,
+        .surface = surface,
+        .context = context,
+    };
 }
 
 static void Gpu_LinuxShutdown()
 {
-    eglDestroySurface(s_EGLDisplay, s_EGLSurface);
-    eglDestroyContext(s_EGLDisplay, s_EGLContext);
-    eglTerminate(s_EGLDisplay);
+    EGLDisplay display = gpuLinux.display;
+    EGLSurface surface = gpuLinux.surface;
+    EGLContext context = gpuLinux.context;
+
+    eglDestroySurface(display, surface);
+    eglDestroyContext(display, context);
+    eglTerminate(display);
 }
 
 static void Gpu_LinuxSwapBuffers()
 {
-    eglSwapBuffers(s_EGLDisplay, s_EGLSurface);
+    EGLDisplay display = gpuLinux.display;
+    EGLSurface surface = gpuLinux.surface;
+
+    eglSwapBuffers(display, surface);
 }
 
 #endif // OS_LINUX
@@ -406,33 +414,27 @@ static void Gpu_LinuxSwapBuffers()
 #pragma comment(lib, "opengl32")
 #pragma comment(lib, "gdi32")
 
-static HGLRC s_Win32RenderContext;
-static HDC s_Win32HDC;
+typedef struct {
+    HDC hdc;
+    HGLRC hglrc;
+} Gpu_Win32Context;
+
+static Gpu_Win32Context gpuWin32;
 
 static void Gpu_Win32Startup()
 {
-    PIXELFORMATDESCRIPTOR pfd = (PIXELFORMATDESCRIPTOR)
-    {
-        sizeof(PIXELFORMATDESCRIPTOR),
-        1,
-        PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,    //Flags
-        PFD_TYPE_RGBA,        // The kind of framebuffer. RGBA or palette.
-        32,                   // Colordepth of the framebuffer.
-        0, 0, 0, 0, 0, 0,
-        0,
-        0,
-        0,
-        0, 0, 0, 0,
-        24,                   // Number of bits for the depthbuffer
-        8,                    // Number of bits for the stencilbuffer
-        0,                    // Number of Aux buffers in the framebuffer.
-        PFD_MAIN_PLANE,
-        0,
-        0, 0, 0
+    PIXELFORMATDESCRIPTOR pixelFormatInfo = (PIXELFORMATDESCRIPTOR) {
+        .nSize = sizeof(PIXELFORMATDESCRIPTOR),
+        .nVersion = 1,
+        .dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,
+        .iPixelType = PFD_TYPE_RGBA,
+        .cColorBits = 32,
+        .cDepthBits = 24,
+        .cStencilBits = 8,
+        .iLayerType = PFD_MAIN_PLANE,
     };
 
-    int attributes[] = 
-    {
+    int attributes[] = {
         WGL_CONTEXT_MAJOR_VERSION_ARB, 4,
         WGL_CONTEXT_MINOR_VERSION_ARB, 5,
         WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB, 
@@ -440,42 +442,39 @@ static void Gpu_Win32Startup()
         0,
     };
 
-    BOOL result;
+#define CHECK(expr) if (!(expr)) assert(false);
     HWND hwnd = Os_GetNativeWindowHandle();
-    assert(hwnd != NULL);
+    CHECK(hwnd);
     HDC hdc = GetDC(hwnd);
-    assert(hdc != NULL);
-    int pixelFormat = ChoosePixelFormat(hdc, &pfd); 
-    assert(pixelFormat != 0);
-    result = SetPixelFormat(hdc, pixelFormat, &pfd);
-    assert(result == TRUE);
+    CHECK(hdc);
+    int pixelFormat = ChoosePixelFormat(hdc, &pixelFormatInfo);
+    CHECK(pixelFormat);
+    CHECK(SetPixelFormat(hdc, pixelFormat, &pixelFormatInfo));
     HGLRC tempHglrc = wglCreateContext(hdc);
-    wglMakeCurrent(hdc, tempHglrc);
-    result = gladLoaderLoadWGL(hdc);
-    assert(result);
+    CHECK(wglMakeCurrent(hdc, tempHglrc));
+    CHECK(gladLoaderLoadWGL(hdc));
     HGLRC hglrc = wglCreateContextAttribsARB(hdc, NULL, attributes);
-    assert(hglrc != NULL);
-    result = wglMakeCurrent(NULL, NULL);
-    assert(result == TRUE);
-    result = wglDeleteContext(tempHglrc);
-    assert(result == TRUE);
-    result = wglMakeCurrent(hdc, hglrc);
-    assert(result == TRUE);
-    result = gladLoaderLoadGL();
-    assert(result);
+    CHECK(hglrc);
+    CHECK(wglMakeCurrent(NULL, NULL));
+    CHECK(wglDeleteContext(tempHglrc));
+    CHECK(wglMakeCurrent(hdc, hglrc));
+    CHECK(gladLoaderLoadGL());
+#undef CHECK
 
-    s_Win32RenderContext = hglrc;
-    s_Win32HDC = hdc;
+    gpuWin32 = (Gpu_Win32Context) {
+        .hdc = hdc,
+        .hglrc = hglrc,
+    };
 }
 
 static void Gpu_Win32Shutdown()
 {
-    wglDeleteContext(s_Win32RenderContext);
+    wglDeleteContext(gpuWin32.hglrc);
 }
 
 static void Gpu_Win32SwapBuffers()
 {
-    SwapBuffers(s_Win32HDC);
+    SwapBuffers(gpuWin32.hdc);
 }
 
 #endif // OS_WIN32
