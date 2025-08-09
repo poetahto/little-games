@@ -29,7 +29,7 @@ void Entrypoint()
     u16 seed = 0xB00B;
 
     // TODO(sam): Don't spawn on edge
-    SnakeCell* head = HeapAlloc(sizeof(SnakeCell));
+    SnakeCell* head = Os_HeapAlloc(sizeof(SnakeCell));
     head->x = LfsrFibonacci(&seed) % WIDTH;
     head->y = LfsrFibonacci(&seed) % HEIGHT;
 
