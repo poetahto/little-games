@@ -38,5 +38,6 @@ void ArenaRollback(Arena *arena, int count);
 void ArenaReset(Arena *arena);
 void * HeapAlloc(int sizeBytes);
 void HeapFree(void *buffer);
+void MemoryClear(void *buffer, int sizeBytes);
 
 #endif // GAMES_CORE_H

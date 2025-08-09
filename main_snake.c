@@ -34,4 +34,8 @@ void Entrypoint()
     head->y = LfsrFibonacci(&seed) % HEIGHT;
 
     SnakeCell* tail = head;
+
+    UNUSED(head);
+    UNUSED(tail);
+    UNUSED(direction);
 }
