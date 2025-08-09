@@ -4,13 +4,14 @@
 #include "gpu.c"
 #include "profile.c"
 
+#define size 50
+
 void Entrypoint()
 {
     Os_CreateWindow(800, 600);
     Gpu_Startup();
     Draw_Startup();
 
-    int size = 50;
     bool isRunning = true;
 
     while (isRunning)
@@ -40,11 +41,11 @@ void Entrypoint()
 
         Draw_BeginFrame();
         Draw_Grid(size);
-        static int x = 0;
-        Draw_Rectangle(x += size, size, size, size, DRAW_YELLOW);
+        static int x = (int)(size * 0.5f);
+        Draw_Rectangle(x += size, (int)(size * 0.5f), size, size, DRAW_YELLOW);
         Draw_EndFrame();
 
-        Os_Sleep(50);
+        Os_Sleep(500);
     }
 
     Draw_Shutdown();

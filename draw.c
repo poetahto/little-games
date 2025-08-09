@@ -23,7 +23,7 @@ void Draw_Shutdown()
 
 void Draw_BeginFrame()
 {
-    Gpu_Clear(0.2f, 0.4f, 0.6f);
+    Gpu_Clear(0, 0, 0);
 }
 
 void Draw_EndFrame()
@@ -86,15 +86,16 @@ void Draw_Line(int x1, int y1, int x2, int y2, Draw_Color color)
 
 void Draw_Grid(int spacing)
 {
-    float tint = 0.1f;
+    int thickness = 3;
+    float tint = 0.125f;
     Draw_Color color = { .r = tint, .g = tint, .b = tint };
 
     int width, height; 
     Os_GetWindowSize(&width, &height);
 
     for (int x = 0; x < width; x += spacing)
-        Draw_Line(x, 0, x, height, color);
+        Draw_Rectangle(x, (int)(height * 0.5f), thickness, height, color);
 
     for (int y = 0; y < height; y += spacing)
-        Draw_Line(0, y, width, y, color);
+        Draw_Rectangle((int)(width * 0.5f), y, width, thickness, color);
 }

@@ -125,7 +125,7 @@ static void Gpu_CoreStartup(void)
             "uniform sampler2D spriteTexture;\n"
             "void main()\n"
             "{\n"
-            "    outColor = texture(spriteTexture, fragTexcoords);\n"
+            "    outColor = texture(spriteTexture, fragTexcoords) * vec4(fragTint, 1.0);\n"
             "}\n";
 
         GLuint program = Gpu_CreateProgram(vsSource, fsSource);
@@ -142,8 +142,8 @@ static void Gpu_CoreStartup(void)
         glEnableVertexArrayAttrib(vao, 2);
 
         glVertexArrayAttribFormat(vao, 0, 2, GL_FLOAT, GL_FALSE, offsetof(Gpu_SpriteVertex, clipPosition));
-        glVertexArrayAttribFormat(vao, 0, 2, GL_FLOAT, GL_FALSE, offsetof(Gpu_SpriteVertex, texcoords));
-        glVertexArrayAttribFormat(vao, 0, 3, GL_FLOAT, GL_FALSE, offsetof(Gpu_SpriteVertex, tint));
+        glVertexArrayAttribFormat(vao, 1, 2, GL_FLOAT, GL_FALSE, offsetof(Gpu_SpriteVertex, texcoords));
+        glVertexArrayAttribFormat(vao, 2, 3, GL_FLOAT, GL_FALSE, offsetof(Gpu_SpriteVertex, tint));
 
         glVertexArrayAttribBinding(vao, 0, 0);
         glVertexArrayAttribBinding(vao, 1, 0);
@@ -186,7 +186,7 @@ static Gpu_SpriteVertex Gpu_GetSpriteVertex(Gpu_Sprite sprite, Gpu_Texture textu
 
     Float2 textureTopRight = CreateFloat2(sprite.textureX, sprite.textureY);
     Float2 textureHalfExtents = CreateFloat2(sprite.textureWidth * 0.5f, sprite.textureHeight * 0.5f);
-    Float2 textureCenter = CreateFloat2(textureTopRight.x + textureHalfExtents.x, textureTopRight.y - textureHalfExtents.y);
+    Float2 textureCenter = CreateFloat2(textureTopRight.x + textureHalfExtents.x, textureTopRight.y + textureHalfExtents.y);
     Float2 textureHalfOffset = ScaleFloat2(textureHalfExtents, offset);
     Float2 texturePosition = AddFloat2(textureCenter, textureHalfOffset);
     Float2 texcoords = CreateFloat2(texturePosition.x / texture.width, texturePosition.y / texture.height);
