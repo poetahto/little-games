@@ -93,7 +93,12 @@ void Os_GetWindowSize(int *width, int *height)
     if (height) *height = s_OsX11Context.height;
 }
 
-bool Os_PumpEvents(Os_Event *currentEvent)
+void * Os_GetNativeWindowHandle()
+{
+    return (void *)s_OsX11Context.window;
+}
+
+bool Os_PumpWindowEvents(Os_WindowEvent *currentEvent)
 {
     Os_X11Context *ctx = &s_OsX11Context;
 

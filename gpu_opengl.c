@@ -2,6 +2,7 @@
 // Core cross-platform OpenGL logic
 //
 
+#include "os.h"
 #include "gpu.h"
 #include "profile.h"
 
@@ -375,7 +376,7 @@ static void Gpu_LinuxStartup()
     eglBindAPI(EGL_OPENGL_API);
     EGLContext context = eglCreateContext(display, config, EGL_NO_CONTEXT, NULL);
     assert(context != EGL_NO_CONTEXT);
-    EGLNativeWindowType window = (EGLNativeWindowType)s_OsX11Context.window;
+    EGLNativeWindowType window = (EGLNativeWindowType)Os_GetNativeWindowHandle();
     EGLSurface surface = eglCreateWindowSurface(display, config, window, NULL);
     assert(surface != EGL_NO_SURFACE);
     success = eglMakeCurrent(display, surface, surface, context);
