@@ -1,11 +1,11 @@
-#include "wm.h"
+#include "os.h"
 #include "profile.h"
 
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 
-typedef struct Wm_Context Wm_Context;
-struct Wm_Context
+typedef struct Os_X11Context Os_X11Context;
+struct Os_X11Context
 {
     Display *display;
     Window window;
@@ -14,14 +14,14 @@ struct Wm_Context
     int height;
 };
 
-static Wm_Context s_WmContext;
+static Os_X11Context s_OsX11Context;
 
-static Wm_KeyCode Wm_GetKeyCode(XEvent *event);
+static Os_KeyCode Os_GetKeyCode(XEvent *event);
 
-void Wm_Startup(int width, int height)
+void Os_CreateWindow(int width, int height)
 {
     Os_Log("Initializing X11");
-    Wm_Context ctx;
+    Os_X11Context ctx;
 
     PROFILE("Open display")
     {
@@ -77,25 +77,25 @@ void Wm_Startup(int width, int height)
         ctx.height = h;
     }
 
-    s_WmContext = ctx;
+    s_OsX11Context = ctx;
 }
 
-void Wm_Shutdown()
+void Os_FreeWindow()
 {
-    Wm_Context ctx = s_WmContext;
+    Os_X11Context ctx = s_OsX11Context;
     XDestroyWindow(ctx.display, ctx.window);
     XCloseDisplay(ctx.display);
 }
 
-void Wm_GetWindowSize(int *width, int *height)
+void Os_GetWindowSize(int *width, int *height)
 {
-    if (width) *width = s_WmContext.width;
-    if (height) *height = s_WmContext.height;
+    if (width) *width = s_OsX11Context.width;
+    if (height) *height = s_OsX11Context.height;
 }
 
-bool Wm_PumpEvents(Wm_Event *currentEvent)
+bool Os_PumpEvents(Os_Event *currentEvent)
 {
-    Wm_Context *ctx = &s_WmContext;
+    Os_X11Context *ctx = &s_OsX11Context;
 
     if (!XPending(ctx->display))
         return false;
@@ -107,13 +107,13 @@ bool Wm_PumpEvents(Wm_Event *currentEvent)
     {
         case ClientMessage: 
         {
-            currentEvent->type = WM_EVENT_QUIT; 
+            currentEvent->type = OS_EVENT_QUIT; 
             break;
         }
         case KeyPress:
         {
-            currentEvent->type = WM_EVENT_KEY_DOWN;
-            currentEvent->key = Wm_GetKeyCode(&xevent);
+            currentEvent->type = OS_EVENT_KEY_DOWN;
+            currentEvent->key = Os_GetKeyCode(&xevent);
             break;
         }
         case ConfigureNotify:
@@ -127,20 +127,15 @@ bool Wm_PumpEvents(Wm_Event *currentEvent)
     return true;
 }
 
-void *Wm_GetNativeHandle(void)
-{
-    return (void *)s_WmContext.window;
-}
-
-static Wm_KeyCode Wm_GetKeyCode(XEvent *event)
+static Os_KeyCode Os_GetKeyCode(XEvent *event)
 {
     switch (XLookupKeysym(&event->xkey, 0))
     {
-        case XK_Up: return WM_KEY_UP; 
-        case XK_Down: return WM_KEY_DOWN;
-        case XK_Left: return WM_KEY_LEFT;
-        case XK_Right: return WM_KEY_RIGHT;
-        case XK_Escape: return WM_KEY_ESCAPE;
-        default: return WM_KEY_NULL;
+        case XK_Up: return OS_KEY_UP; 
+        case XK_Down: return OS_KEY_DOWN;
+        case XK_Left: return OS_KEY_LEFT;
+        case XK_Right: return OS_KEY_RIGHT;
+        case XK_Escape: return OS_KEY_ESCAPE;
+        default: return OS_KEY_NULL;
     }
 }

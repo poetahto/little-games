@@ -1,13 +1,13 @@
+///////////////////////////////////
+// Core cross-platform OpenGL logic
+//
+
 #include "gpu.h"
-#include "wm.h"
 #include "profile.h"
 
 #include "extern/glad/glad.c"
 
-#include <EGL/egl.h>
-#include <EGL/eglext.h>
 #include <GL/gl.h>
-#include <GL/glext.h>
 
 #define GPU_MAX_SPRITES 256
 #define GPU_MAX_TEXTURES 32
@@ -71,10 +71,6 @@ struct Gpu_ProgramArray
 typedef struct Gpu_Context Gpu_Context;
 struct Gpu_Context
 {
-    EGLDisplay display;
-    EGLSurface surface;
-    EGLContext context;
-
     Gpu_BufferArray bufferArray;
     Gpu_VaoArray vaoArray;
     Gpu_ProgramArray programArray;
@@ -86,41 +82,8 @@ static Gpu_Context s_GpuContext;
 static void Gpu_LogDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, GLchar const* message, void const* userData);
 static GLuint Gpu_CreateProgram(const char *vsSource, const char *fsSource);
 
-void Gpu_Startup(void)
+static void Gpu_CoreStartup(void)
 {
-    Os_Log("Initialzing OpenGL");
-
-    EGLint attributes[] = 
-    {
-        EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-        EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
-        EGL_RED_SIZE, 8,
-        EGL_GREEN_SIZE, 8,
-        EGL_BLUE_SIZE, 8,
-        EGL_DEPTH_SIZE, 24,
-        EGL_NONE
-    };
-
-    EGLBoolean success;
-    EGLDisplay display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-    assert(display != EGL_NO_DISPLAY);
-    success = eglInitialize(display, NULL, NULL);
-    assert(success);
-    EGLConfig config;
-    EGLint configCount;
-    eglChooseConfig(display, attributes, &config, 1, &configCount);
-    assert(configCount >= 1);
-    eglBindAPI(EGL_OPENGL_API);
-    EGLContext context = eglCreateContext(display, config, EGL_NO_CONTEXT, NULL);
-    assert(context != EGL_NO_CONTEXT);
-    EGLNativeWindowType window = (EGLNativeWindowType)Wm_GetNativeHandle();
-    EGLSurface surface = eglCreateWindowSurface(display, config, window, NULL);
-    assert(surface != EGL_NO_SURFACE);
-    success = eglMakeCurrent(display, surface, surface, context);
-    assert(success);
-    success = gladLoadGLLoader((GLADloadproc)eglGetProcAddress);
-    assert(success);
-
 #ifndef NDEBUG
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback(Gpu_LogDebugMessage, NULL);
@@ -188,18 +151,14 @@ void Gpu_Startup(void)
 
     s_GpuContext = (Gpu_Context) 
     {
-        .display = display,
-        .context = context,
-        .surface = surface,
         .bufferArray = bufferArray,
         .vaoArray = vaoArray,
         .programArray = programArray,
     };
 }
 
-void Gpu_Shutdown(void)
+static void Gpu_CoreShutdown(void)
 {
-    Os_Log("Freeing OpenGL resources");
     Gpu_Context ctx = s_GpuContext;
 
     glDeleteVertexArrays(ARR_LEN(ctx.vaoArray.data), ctx.vaoArray.data);
@@ -207,15 +166,6 @@ void Gpu_Shutdown(void)
 
     for (u32 i = 0; i < ARR_LEN(ctx.programArray.data); i++)
         glDeleteProgram(ctx.programArray.data[i]);
-
-    eglDestroySurface(ctx.display, ctx.surface);
-    eglDestroyContext(ctx.display, ctx.context);
-    eglTerminate(ctx.display);
-}
-
-void Gpu_Present(void)
-{
-    eglSwapBuffers(s_GpuContext.display, s_GpuContext.surface);
 }
 
 void Gpu_Clear(float r, float g, float b)
@@ -226,15 +176,15 @@ void Gpu_Clear(float r, float g, float b)
 
 static Gpu_SpriteVertex Gpu_GetSpriteVertex(Gpu_Sprite sprite, Gpu_Texture texture, Float2 offset)
 {
-    int width, height; Wm_GetWindowSize(&width, &height);
+    int width, height; Os_GetWindowSize(&width, &height);
     Float2 center = CreateFloat2(sprite.screenX, sprite.screenY);
-    Float2 halfExtents = CreateFloat2(sprite.screenWidth * 0.5, sprite.screenHeight * 0.5);
+    Float2 halfExtents = CreateFloat2(sprite.screenWidth * 0.5f, sprite.screenHeight * 0.5f);
     Float2 halfOffset = ScaleFloat2(halfExtents, offset);
     Float2 position = AddFloat2(center, halfOffset);
     Float2 clipPosition = CreateFloat2(position.x / width * 2 - 1, position.y / height * 2 - 1);
 
     Float2 textureTopRight = CreateFloat2(sprite.textureX, sprite.textureY);
-    Float2 textureHalfExtents = CreateFloat2(sprite.textureWidth * 0.5, sprite.textureHeight * 0.5);
+    Float2 textureHalfExtents = CreateFloat2(sprite.textureWidth * 0.5f, sprite.textureHeight * 0.5f);
     Float2 textureCenter = CreateFloat2(textureTopRight.x + textureHalfExtents.x, textureTopRight.y - textureHalfExtents.y);
     Float2 textureHalfOffset = ScaleFloat2(textureHalfExtents, offset);
     Float2 texturePosition = AddFloat2(textureCenter, textureHalfOffset);
@@ -385,4 +335,182 @@ static GLuint Gpu_CreateProgram(const char *vsSource, const char *fsSource)
     glDeleteShader(fragmentShader);
 
     return program;
+}
+
+////////////////////////////////////
+// Linux EGL-based OpenGL loader
+//
+
+#ifdef OS_LINUX
+
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+
+static EGLDisplay s_EGLDisplay;
+static EGLSurface s_EGLSurface;
+static EGLContext s_EGLContext;
+
+static void Gpu_LinuxStartup()
+{
+    EGLint attributes[] = 
+    {
+        EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
+        EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
+        EGL_RED_SIZE, 8,
+        EGL_GREEN_SIZE, 8,
+        EGL_BLUE_SIZE, 8,
+        EGL_DEPTH_SIZE, 24,
+        EGL_NONE
+    };
+
+    EGLBoolean success;
+    EGLDisplay display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+    assert(display != EGL_NO_DISPLAY);
+    success = eglInitialize(display, NULL, NULL);
+    assert(success);
+    EGLConfig config;
+    EGLint configCount;
+    eglChooseConfig(display, attributes, &config, 1, &configCount);
+    assert(configCount >= 1);
+    eglBindAPI(EGL_OPENGL_API);
+    EGLContext context = eglCreateContext(display, config, EGL_NO_CONTEXT, NULL);
+    assert(context != EGL_NO_CONTEXT);
+    EGLNativeWindowType window = (EGLNativeWindowType)s_OsX11Context.window;
+    EGLSurface surface = eglCreateWindowSurface(display, config, window, NULL);
+    assert(surface != EGL_NO_SURFACE);
+    success = eglMakeCurrent(display, surface, surface, context);
+    assert(success);
+    success = gladLoadGLLoader((GLADloadproc)eglGetProcAddress);
+    assert(success);
+
+    s_EGLDisplay = display;
+    s_EGLSurface = surface;
+    s_EGLContext = context;
+}
+
+static void Gpu_LinuxShutdown()
+{
+    eglDestroySurface(s_EGLDisplay, s_EGLSurface);
+    eglDestroyContext(s_EGLDisplay, s_EGLContext);
+    eglTerminate(s_EGLDisplay);
+}
+
+static void Gpu_LinuxSwapBuffers()
+{
+    eglSwapBuffers(s_EGLDisplay, s_EGLSurface);
+}
+
+#endif // OS_LINUX
+
+///////////////////////////////////////
+// Windows WGL-based OpenGL loader
+//
+
+#ifdef OS_WIN32
+
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+
+#pragma comment(lib, "opengl32")
+#pragma comment(lib, "gdi32")
+
+static HGLRC s_Win32RenderContext;
+static HDC s_Win32HDC;
+
+static void * Gpu_Win32GetProcAddress(const char *name)
+{
+    void *proc = wglGetProcAddress(name);
+    if (!proc)
+        proc = GetProcAddress(GetModuleHandleA("opengl32.dll"), name);
+    return proc;
+}
+
+static void Gpu_Win32Startup()
+{
+    PIXELFORMATDESCRIPTOR pfd = (PIXELFORMATDESCRIPTOR)
+    {
+        sizeof(PIXELFORMATDESCRIPTOR),
+        1,
+        PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,    //Flags
+        PFD_TYPE_RGBA,        // The kind of framebuffer. RGBA or palette.
+        32,                   // Colordepth of the framebuffer.
+        0, 0, 0, 0, 0, 0,
+        0,
+        0,
+        0,
+        0, 0, 0, 0,
+        24,                   // Number of bits for the depthbuffer
+        8,                    // Number of bits for the stencilbuffer
+        0,                    // Number of Aux buffers in the framebuffer.
+        PFD_MAIN_PLANE,
+        0,
+        0, 0, 0
+    };
+
+    BOOL result;
+    HWND hwnd = Os_GetNativeWindowHandle();
+    assert(hwnd != NULL);
+    HDC hdc = GetDC(hwnd);
+    assert(hdc != NULL);
+    int pixelFormat = ChoosePixelFormat(hdc, &pfd); 
+    assert(pixelFormat != 0);
+    result = SetPixelFormat(hdc, pixelFormat, &pfd);
+    assert(result == TRUE);
+    HGLRC hglrc = wglCreateContext(hdc);
+    assert(hglrc != NULL);
+    result = wglMakeCurrent(hdc, hglrc);
+    assert(result == TRUE);
+    result = gladLoadGLLoader((GLADloadproc)Gpu_Win32GetProcAddress);
+    assert(result);
+
+    s_Win32RenderContext = hglrc;
+    s_Win32HDC = hdc;
+}
+
+static void Gpu_Win32Shutdown()
+{
+    wglDeleteContext(s_Win32RenderContext);
+}
+
+static void Gpu_Win32SwapBuffers()
+{
+    SwapBuffers(s_Win32HDC);
+}
+
+#endif // OS_WIN32
+
+////////////////////////////////////
+// Conditionally compiled platform-dependent functions
+//
+
+void Gpu_Startup()
+{
+#ifdef OS_LINUX
+    Gpu_LinuxStartup();
+#endif 
+#ifdef OS_WIN32
+    Gpu_Win32Startup();
+#endif
+    Gpu_CoreStartup();
+}
+
+void Gpu_Shutdown()
+{
+    Gpu_CoreShutdown();
+#ifdef OS_LINUX
+    Gpu_LinuxShutdown();
+#endif
+#ifdef OS_WIN32
+    Gpu_Win32Shutdown();
+#endif
+}
+
+void Gpu_Present()
+{
+#ifdef OS_LINUX
+    Gpu_LinuxSwapBuffers();
+#endif
+#ifdef OS_WIN32
+    Gpu_Win32SwapBuffers();
+#endif
 }

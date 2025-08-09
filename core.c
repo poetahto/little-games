@@ -10,20 +10,6 @@ u16 LfsrFibonacci(u16 *lfsr)
     return *lfsr;
 }
 
-Arena CreateArena(int capacity)
-{
-    return (Arena)
-    {
-        .buffer = HeapAlloc(capacity),
-        .capacity = capacity,
-    };
-}
-
-void FreeArena(Arena arena)
-{
-    HeapFree(arena.buffer);
-}
-
 void * ArenaAlloc(Arena *arena, int sizeBytes)
 {
     assert(arena->head + sizeBytes < arena->capacity);
@@ -41,16 +27,6 @@ void ArenaRollback(Arena *arena, int count)
 void ArenaReset(Arena *arena)
 {
     arena->head = 0;
-}
-
-void * HeapAlloc(int sizeBytes)
-{
-    return malloc(sizeBytes);
-}
-
-void HeapFree(void *buffer)
-{
-    free(buffer);
 }
 
 void MemoryCopy(void *dest, const void *src, int count)

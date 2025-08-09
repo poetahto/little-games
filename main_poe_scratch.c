@@ -1,13 +1,12 @@
 #include "core.c"
 #include "os.c"
 #include "draw.c"
-#include "wm.c"
 #include "gpu.c"
 #include "profile.c"
 
 void Entrypoint()
 {
-    Wm_Startup(800, 600);
+    Os_CreateWindow(800, 600);
     Gpu_Startup();
     Draw_Startup();
 
@@ -16,22 +15,22 @@ void Entrypoint()
 
     while (isRunning)
     {
-        Wm_Event event;
+        Os_WindowEvent event;
 
-        while (Wm_PumpEvents(&event))
+        while (Os_PumpWindowEvents(&event))
         {
             switch (event.type)
             {
-                case WM_EVENT_QUIT: isRunning = false; break;
-                case WM_EVENT_KEY_DOWN: 
+                case OS_EVENT_QUIT: isRunning = false; break;
+                case OS_EVENT_KEY_DOWN: 
                 {
                     switch (event.key)
                     {
-                        case WM_KEY_ESCAPE: isRunning = false; break;
-                        case WM_KEY_UP: Os_Log("Pressed up"); break;
-                        case WM_KEY_DOWN: Os_Log("Pressed down"); break;
-                        case WM_KEY_LEFT: Os_Log("Pressed left"); break;
-                        case WM_KEY_RIGHT: Os_Log("Pressed right"); break;
+                        case OS_KEY_ESCAPE: isRunning = false; break;
+                        case OS_KEY_UP: Os_Log("Pressed up"); break;
+                        case OS_KEY_DOWN: Os_Log("Pressed down"); break;
+                        case OS_KEY_LEFT: Os_Log("Pressed left"); break;
+                        case OS_KEY_RIGHT: Os_Log("Pressed right"); break;
                         default: break;
                     }
                 }
@@ -50,5 +49,5 @@ void Entrypoint()
 
     Draw_Shutdown();
     Gpu_Shutdown();
-    Wm_Shutdown();
+    Os_FreeWindow();
 }

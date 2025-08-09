@@ -40,13 +40,9 @@ struct Arena
 };
 
 u16 LfsrFibonacci(u16 *lfsr);
-Arena CreateArena(int capacity);
-void FreeArena(Arena arena);
 void * ArenaAlloc(Arena *arena, int sizeBytes);
 void ArenaRollback(Arena *arena, int count);
 void ArenaReset(Arena *arena);
-void * HeapAlloc(int sizeBytes);
-void HeapFree(void *buffer);
 void MemoryCopy(void *dest, const void *src, int count);
 Float2 CreateFloat2(float x, float y);
 Float2 AddFloat2(Float2 a, Float2 b);
