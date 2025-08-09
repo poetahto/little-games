@@ -409,14 +409,6 @@ static void Gpu_LinuxSwapBuffers()
 static HGLRC s_Win32RenderContext;
 static HDC s_Win32HDC;
 
-static void * Gpu_Win32GetProcAddress(const char *name)
-{
-    void *proc = wglGetProcAddress(name);
-    if (!proc)
-        proc = GetProcAddress(GetModuleHandleA("opengl32.dll"), name);
-    return proc;
-}
-
 static void Gpu_Win32Startup()
 {
     PIXELFORMATDESCRIPTOR pfd = (PIXELFORMATDESCRIPTOR)

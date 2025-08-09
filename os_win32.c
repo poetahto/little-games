@@ -139,7 +139,7 @@ static LRESULT WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         case WM_KEYUP:
         {
             s_CurrentEvent->type = OS_EVENT_KEY_UP;
-            s_CurrentEvent->type = Os_GetKeyCode(wParam);
+            s_CurrentEvent->key = Os_GetKeyCode(wParam);
             s_WasCurrentEventProcessed = true;
             break;
         }
