@@ -344,8 +344,9 @@ static GLuint Gpu_CreateProgram(const char *vsSource, const char *fsSource)
 
 #ifdef OS_LINUX
 
-#include <EGL/egl.h>
-#include <EGL/eglext.h>
+#define GLAD_EGL_IMPLEMENTATION
+#include "extern/egl.h"
+#undef GLAD_EGL_IMPLEMENTATION
 
 static EGLDisplay s_EGLDisplay;
 static EGLSurface s_EGLSurface;
@@ -365,23 +366,27 @@ static void Gpu_LinuxStartup()
     };
 
     EGLBoolean success;
+    success = gladLoaderLoadEGL(NULL);
+    assert(success);
     EGLDisplay display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
     assert(display != EGL_NO_DISPLAY);
     success = eglInitialize(display, NULL, NULL);
+    assert(success);
+    success = gladLoaderLoadEGL(display);
     assert(success);
     EGLConfig config;
     EGLint configCount;
     eglChooseConfig(display, attributes, &config, 1, &configCount);
     assert(configCount >= 1);
-    eglBindAPI(EGL_OPENGL_API);
-    EGLContext context = eglCreateContext(display, config, EGL_NO_CONTEXT, NULL);
-    assert(context != EGL_NO_CONTEXT);
     EGLNativeWindowType window = (EGLNativeWindowType)Os_GetNativeWindowHandle();
     EGLSurface surface = eglCreateWindowSurface(display, config, window, NULL);
     assert(surface != EGL_NO_SURFACE);
+    eglBindAPI(EGL_OPENGL_API);
+    EGLContext context = eglCreateContext(display, config, EGL_NO_CONTEXT, NULL);
+    assert(context != EGL_NO_CONTEXT);
     success = eglMakeCurrent(display, surface, surface, context);
     assert(success);
-    success = gladLoadGLLoader((GLADloadproc)eglGetProcAddress);
+    success = gladLoaderLoadGL();
     assert(success);
 
     s_EGLDisplay = display;
