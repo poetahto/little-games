@@ -1,5 +1,6 @@
 #include "os.c"
 #include "core.c"
+#include "profile.c"
 
 #define WIDTH 30
 #define HEIGHT 30

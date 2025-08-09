@@ -1,5 +1,6 @@
 #include "os.c"
 #include "core.c"
+#include "profile.c"
 
 void Entrypoint()
 {
