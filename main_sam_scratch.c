@@ -161,6 +161,6 @@ static Point GetPointRelative(Point point, Direction direction)
         case DOWN: return (Point) { .x = point.x, .y = point.y - 1 };
         case LEFT: return (Point) { .x = point.x - 1, .y = point.y };
         case RIGHT: return (Point) { .x = point.x + 1, .y = point.y };
-        default: assert(false && "Invalid direction");
+        default: assert(false && "Invalid direction"); return (Point) {.x = 0, .y = 0};
     }
 }
