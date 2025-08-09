@@ -6,9 +6,9 @@
 #include "gpu.h"
 #include "profile.h"
 
-#include "extern/glad/glad.c"
-
-#include <GL/gl.h>
+#define GLAD_GL_IMPLEMENTATION
+#include "extern/gl.h"
+#undef GLAD_GL_IMPLEMENTATION
 
 #define GPU_MAX_SPRITES 256
 #define GPU_MAX_TEXTURES 32
@@ -409,6 +409,10 @@ static void Gpu_LinuxSwapBuffers()
 
 #ifdef OS_WIN32
 
+#define GLAD_WGL_IMPLEMENTATION
+#include "extern/wgl.h"
+#undef GLAD_WGL_IMPLEMENTATION
+
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
@@ -448,6 +452,15 @@ static void Gpu_Win32Startup()
         0, 0, 0
     };
 
+    int attributes[] = 
+    {
+        WGL_CONTEXT_MAJOR_VERSION_ARB, 4,
+        WGL_CONTEXT_MINOR_VERSION_ARB, 5,
+        WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB, 
+        WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
+        0,
+    };
+
     BOOL result;
     HWND hwnd = Os_GetNativeWindowHandle();
     assert(hwnd != NULL);
@@ -457,11 +470,19 @@ static void Gpu_Win32Startup()
     assert(pixelFormat != 0);
     result = SetPixelFormat(hdc, pixelFormat, &pfd);
     assert(result == TRUE);
-    HGLRC hglrc = wglCreateContext(hdc);
+    HGLRC tempHglrc = wglCreateContext(hdc);
+    wglMakeCurrent(hdc, tempHglrc);
+    result = gladLoaderLoadWGL(hdc);
+    assert(result);
+    HGLRC hglrc = wglCreateContextAttribsARB(hdc, NULL, attributes);
     assert(hglrc != NULL);
+    result = wglMakeCurrent(NULL, NULL);
+    assert(result == TRUE);
+    result = wglDeleteContext(tempHglrc);
+    assert(result == TRUE);
     result = wglMakeCurrent(hdc, hglrc);
     assert(result == TRUE);
-    result = gladLoadGLLoader((GLADloadproc)Gpu_Win32GetProcAddress);
+    result = gladLoaderLoadGL();
     assert(result);
 
     s_Win32RenderContext = hglrc;

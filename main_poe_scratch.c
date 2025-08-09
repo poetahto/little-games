@@ -44,7 +44,7 @@ void Entrypoint()
         Draw_Rectangle(x += size, size, size, size, DRAW_YELLOW);
         Draw_EndFrame();
 
-        Os_Sleep(500);
+        Os_Sleep(50);
     }
 
     Draw_Shutdown();
