@@ -334,7 +334,9 @@ typedef struct {
     EGLDisplay display;
     EGLSurface surface;
     EGLContext context;
-} Gpu_LinuxContext gpuLinux;
+} Gpu_LinuxContext;
+
+static Gpu_LinuxContext gpuLinux;
 
 static void Gpu_LinuxStartup()
 {
@@ -351,11 +353,11 @@ static void Gpu_LinuxStartup()
 
 #define CHECK(expr) if (!(expr)) assert(false)
     CHECK(gladLoaderLoadEGL(NULL));
-    CHECK(eglBindAPI(EGL_OPENGL_API));
     EGLDisplay display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
     CHECK(display != EGL_NO_DISPLAY);
     CHECK(eglInitialize(display, NULL, NULL));
     CHECK(gladLoaderLoadEGL(display));
+    CHECK(eglBindAPI(EGL_OPENGL_API));
     EGLConfig config;
     EGLint configCount;
     CHECK(eglChooseConfig(display, attributes, &config, 1, &configCount));
