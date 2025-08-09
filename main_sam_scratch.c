@@ -7,31 +7,25 @@
 #define CELL_SIZE 50
 #define MAX_SNAKE (WIDTH * HEIGHT)
 
-typedef enum Direction Direction;
-enum Direction
-{
+typedef enum {
     UP,
     DOWN,
     LEFT,
     RIGHT
-};
+} Direction;
 
-typedef struct Point Point;
-struct Point
-{
+typedef struct {
     int x;
     int y;
-};
+} Point;
 
-typedef struct World World;
-struct World
-{
+typedef struct {
     int width;
     int height;
     int length;
     int sizeBytes;
     bool* data;
-};
+} World;
 
 static void DrawPoint(Point point, int size, Draw_Color color);
 static int GetPointIndex(World world, Point point);

@@ -3,32 +3,26 @@
 
 #include "core.h"
 
-typedef enum Os_WindowEventType Os_WindowEventType;
-enum Os_WindowEventType
-{
+typedef enum {
     OS_EVENT_NULL,
     OS_EVENT_QUIT,
     OS_EVENT_KEY_DOWN,
     OS_EVENT_KEY_UP,
-};
+} Os_WindowEventType;
 
-typedef enum Os_KeyCode Os_KeyCode;
-enum Os_KeyCode
-{
+typedef enum {
     OS_KEY_NULL,
     OS_KEY_UP,
     OS_KEY_DOWN,
     OS_KEY_LEFT,
     OS_KEY_RIGHT,
     OS_KEY_ESCAPE,
-};
+} Os_KeyCode;
 
-typedef struct Os_WindowEvent Os_WindowEvent;
-struct Os_WindowEvent
-{
+typedef struct {
     Os_WindowEventType type;
     Os_KeyCode key;
-};
+} Os_WindowEvent;
 
 // NOTE(poe): Cross-platform main function - should always be defined.
 void Entrypoint(void);

@@ -6,14 +6,12 @@
 #define HEIGHT 30
 #define MAX_SNAKE (WIDTH * HEIGHT)
 
-typedef enum Direction Direction;
-enum Direction
-{
+typedef enum {
     UP,
     DOWN,
     LEFT,
     RIGHT
-};
+} Direction;
 
 typedef struct SnakeCell SnakeCell;
 struct SnakeCell

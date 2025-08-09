@@ -13,70 +13,52 @@
 #define GPU_MAX_SPRITES 256
 #define GPU_MAX_TEXTURES 32
 
-typedef enum Gpu_Buffer Gpu_Buffer;
-enum Gpu_Buffer
-{
+typedef enum {
     GPU_BUFFER_SPRITE_VERTEX,
     GPU_BUFFER_SPRITE_INDEX,
     GPU_BUFFER_COUNT,
-};
+} Gpu_Buffer;
 
-typedef enum Gpu_Vao Gpu_Vao;
-enum Gpu_Vao
-{
+typedef enum {
     GPU_VAO_SPRITE,
     GPU_VAO_COUNT,
-};
+} Gpu_Vao;
 
-typedef enum Gpu_Program Gpu_Program;
-enum Gpu_Program
-{
+typedef enum {
     GPU_PROGRAM_SPRITE,
     GPU_PROGRAM_COUNT,
-};
+} Gpu_Program;
 
-typedef struct Gpu_Texture Gpu_Texture;
-struct Gpu_Texture
-{
+typedef struct {
     bool isUsed;
     int width, height;
     GLuint handle;
-};
+} Gpu_Texture;
 
-typedef struct Gpu_SpriteVertex Gpu_SpriteVertex;
-struct Gpu_SpriteVertex
-{
+typedef struct {
     float clipPosition[2];
     float texcoords[2];
     float tint[3];
-};
+} Gpu_SpriteVertex;
 
-typedef struct Gpu_BufferArray Gpu_BufferArray;
-struct Gpu_BufferArray 
-{ 
+typedef struct { 
     GLuint data[GPU_BUFFER_COUNT]; 
-};
+} Gpu_BufferArray;
 
-typedef struct Gpu_VaoArray Gpu_VaoArray;
-struct Gpu_VaoArray 
-{ 
+typedef struct { 
     GLuint data[GPU_VAO_COUNT]; 
-};
+} Gpu_VaoArray;
 
-typedef struct Gpu_ProgramArray Gpu_ProgramArray;
-struct Gpu_ProgramArray 
-{ 
+typedef struct { 
     GLuint data[GPU_PROGRAM_COUNT]; 
-};
+} Gpu_ProgramArray;
 
-typedef struct Gpu_Context Gpu_Context;
-struct Gpu_Context
-{
+typedef struct {
     Gpu_BufferArray bufferArray;
     Gpu_VaoArray vaoArray;
     Gpu_ProgramArray programArray;
     Gpu_Texture textures[GPU_MAX_TEXTURES];
-};
+} Gpu_Context;
 
 static Gpu_Context s_GpuContext;
 
