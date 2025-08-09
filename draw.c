@@ -1,30 +1,29 @@
 #include "core.h"
 #include "draw.h"
-#include "wm.h"
 #include "gpu.h"
 
 typedef struct Draw_Context Draw_Context;
 struct Draw_Context
 {
-    Arena tempArena;
+    Gpu_Handle rectTexture;
 };
 
 static Draw_Context s_DrawContext;
 
 void Draw_Startup()
 {
-    s_DrawContext.tempArena = CreateArena(KB(16));
+    u32 whitePixel = 0xFFFFFFFF;
+    s_DrawContext.rectTexture = Gpu_CreateTexture(1, 1, &whitePixel);
 }
 
 void Draw_Shutdown()
 {
-    FreeArena(s_DrawContext.tempArena);
+    Gpu_FreeTexture(s_DrawContext.rectTexture);
 }
 
 void Draw_BeginFrame()
 {
-    ArenaReset(&s_DrawContext.tempArena);
-    Gpu_Clear(0.2f, 0.4f, 0.6f);
+    Gpu_Clear(0, 0, 0);
 }
 
 void Draw_EndFrame()
@@ -62,36 +61,41 @@ void Draw_Text(int x, int y, const char *format, ...)
 
 void Draw_Rectangle(int x, int y, int w, int h, Draw_Color color)
 {
-    UNUSED(x);
-    UNUSED(y);
-    UNUSED(w);
-    UNUSED(h);
-    UNUSED(color);
+    Gpu_Sprite sprite = 
+    {
+        .textureX = 0, .textureY = 0, .textureWidth = 1, .textureHeight = 1,
+        .screenX = (float)x, .screenY = (float)y, .screenWidth = (float)w, .screenHeight = (float)h,
+        .r = color.r, .g = color.g, .b = color.b,
+    };
+
+    Gpu_SpritePass pass;
+    pass.spriteCount = 1;
+    pass.sprites = &sprite;
+    pass.texture = s_DrawContext.rectTexture;
+    Gpu_SubmitSprites(pass);
 }
 
-void Draw_Line(int x1, int y1, int x2, int y2)
+void Draw_Line(int x1, int y1, int x2, int y2, Draw_Color color)
 {
     UNUSED(x1);
     UNUSED(y1);
     UNUSED(x2);
     UNUSED(y2);
+    UNUSED(color);
 }
 
 void Draw_Grid(int spacing)
 {
-    UNUSED(spacing);
-
-    /*
-    float tint = 0.1;
-    Wm_RenderSetColor(tint, tint, tint);
+    int thickness = 3;
+    float tint = 0.125f;
+    Draw_Color color = { .r = tint, .g = tint, .b = tint };
 
     int width, height; 
-    Wm_GetWindowSize(&width, &height);
+    Os_GetWindowSize(&width, &height);
 
     for (int x = 0; x < width; x += spacing)
-        Wm_RenderLine(x, 0, x, height);
+        Draw_Rectangle(x, (int)(height * 0.5f), thickness, height, color);
 
     for (int y = 0; y < height; y += spacing)
-        Wm_RenderLine(0, y, width, y);
-    */
+        Draw_Rectangle((int)(width * 0.5f), y, width, thickness, color);
 }

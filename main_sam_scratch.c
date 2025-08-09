@@ -1,6 +1,8 @@
 #include "os.c"
 #include "core.c"
 #include "draw.c"
+#include "profile.c"
+#include "gpu.c"
 
 #define CELL_SIZE 50
 #define MAX_SNAKE (WIDTH * HEIGHT)
@@ -41,18 +43,19 @@ static Point GetPointRelative(Point point, Direction direction);
 
 void Entrypoint()
 {
+    Os_CreateWindow(800, 600);
+    Gpu_Startup();
     Draw_Startup();
-    Os_InitWindow(800, 600);
 
     u16 seed; Os_Random(&seed, sizeof(seed));
-    Os_Size windowSize = Os_GetWindowSize();
+    int width, height; Os_GetWindowSize(&width, &height);
 
     World world;
-    world.width = windowSize.width / CELL_SIZE;
-    world.height = windowSize.height / CELL_SIZE;
+    world.width = width / CELL_SIZE;
+    world.height = height / CELL_SIZE;
     world.length = world.width * world.height;
     world.sizeBytes = sizeof(bool) * world.length;
-    world.data = HeapAlloc(world.sizeBytes);
+    world.data = Os_HeapAlloc(world.sizeBytes);
     MemoryClear(world.data, world.sizeBytes);
 
     int cX = world.width / 2;
@@ -66,9 +69,9 @@ void Entrypoint()
 
     while (isRunning)
     {
-        Os_Event event;
+        Os_WindowEvent event;
 
-        while (Os_PumpEvents(&event))
+        while (Os_PumpWindowEvents(&event))
         {
             switch (event.type)
             {
@@ -115,14 +118,15 @@ void Entrypoint()
         Os_Sleep(500);
     }
 
-    Os_FreeWindow();
     Draw_Shutdown();
+    Gpu_Shutdown();
+    Os_FreeWindow();
 }
 
 static void DrawPoint(Point point, int size, Draw_Color color)
 {
-    Os_Size windowSize = Os_GetWindowSize();
-    Draw_Rectangle(point.x * size, windowSize.height - (point.y * size), size, size, color);
+    int width, height; Os_GetWindowSize(&width, &height);
+    Draw_Rectangle(point.x * size, height - (point.y * size), size, size, color);
 }
 
 static int GetPointIndex(World world, Point point)
