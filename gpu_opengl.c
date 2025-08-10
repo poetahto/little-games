@@ -1,14 +1,17 @@
-///////////////////////////////////
-// Core cross-platform OpenGL logic
-//
-
 #include "os.h"
 #include "gpu.h"
 #include "profile.h"
 
+#ifdef OS_LINUX
+#include "gpu_opengl_linux.c"
+#endif
+
+#ifdef OS_WIN32
+#include "gpu_opengl_win32.c"
+#endif
+
 #define GLAD_GL_IMPLEMENTATION
 #include "extern/gl.h"
-#undef GLAD_GL_IMPLEMENTATION
 
 #define GPU_MAX_SPRITES 256
 #define GPU_MAX_TEXTURES 32
@@ -32,7 +35,7 @@ typedef enum {
 typedef struct {
     bool isUsed;
     int width, height;
-    GLuint handle;
+    GLuint name;
 } Gpu_Texture;
 
 typedef struct {
@@ -41,26 +44,10 @@ typedef struct {
     float tint[3];
 } Gpu_SpriteVertex;
 
-typedef struct { 
-    GLuint data[GPU_BUFFER_COUNT]; 
-} Gpu_BufferArray;
-
-typedef struct { 
-    GLuint data[GPU_VAO_COUNT]; 
-} Gpu_VaoArray;
-
-typedef struct { 
-    GLuint data[GPU_PROGRAM_COUNT]; 
-} Gpu_ProgramArray;
-
-typedef struct {
-    Gpu_BufferArray bufferArray;
-    Gpu_VaoArray vaoArray;
-    Gpu_ProgramArray programArray;
-    Gpu_Texture textures[GPU_MAX_TEXTURES];
-} Gpu_Context;
-
-static Gpu_Context s_GpuContext;
+static GLuint gGlBuffers[GPU_BUFFER_COUNT];
+static GLuint gGlVaos[GPU_VAO_COUNT];
+static GLuint gGlPrograms[GPU_PROGRAM_COUNT];
+static Gpu_Texture gGlTextures[GPU_MAX_TEXTURES];
 
 INCTXT(SpriteVs, "resources/sprite.vert");
 INCTXT(SpriteFs, "resources/sprite.frag");
@@ -68,53 +55,27 @@ INCTXT(SpriteFs, "resources/sprite.frag");
 static void Gpu_LogDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, GLchar const* message, void const* userData);
 static GLuint Gpu_CreateProgram(const char *vsSource, const char *fsSource);
 
-static void Gpu_CoreStartup(void)
+void Gpu_Startup(void)
 {
+    Gpu_StartupOpenGL();
+    if (!gladLoaderLoadGL()) assert(false);
+
 #ifndef NDEBUG
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback(Gpu_LogDebugMessage, NULL);
 #endif
 
-    Gpu_BufferArray bufferArray;
-    Gpu_VaoArray vaoArray;
-    Gpu_ProgramArray programArray;
-
-    glCreateBuffers(ARR_LEN(bufferArray.data), bufferArray.data);
-    glCreateVertexArrays(ARR_LEN(vaoArray.data), vaoArray.data);
+    glCreateBuffers(ARR_LEN(gGlBuffers), gGlBuffers);
+    glCreateVertexArrays(ARR_LEN(gGlVaos), gGlVaos);
 
     // Create sprite render state
     {
-        GLuint vbo = bufferArray.data[GPU_BUFFER_SPRITE_VERTEX];
-        GLuint ebo = bufferArray.data[GPU_BUFFER_SPRITE_INDEX];
-        GLuint vao = vaoArray.data[GPU_VAO_SPRITE];
+        GLuint vbo = gGlBuffers[GPU_BUFFER_SPRITE_VERTEX];
+        GLuint ebo = gGlBuffers[GPU_BUFFER_SPRITE_INDEX];
+        GLuint vao = gGlVaos[GPU_VAO_SPRITE];
 
-        /*const char *vsSource = */
-        /*    "#version 420\n"*/
-        /*    "layout (location = 0) in vec2 clipPosition;\n"*/
-        /*    "layout (location = 1) in vec2 texcoords;\n"*/
-        /*    "layout (location = 2) in vec3 tint;\n"*/
-        /*    "out vec2 fragTexcoords;\n"*/
-        /*    "out vec3 fragTint;\n"*/
-        /*    "void main()\n"*/
-        /*    "{\n"*/
-        /*    "    gl_Position = vec4(clipPosition, 1.0, 1.0);\n"*/
-        /*    "    fragTexcoords = texcoords;\n"*/
-        /*    "    fragTint = tint;\n"*/
-        /*    "}\n";*/
-        /**/
-        /*const char *fsSource =*/
-        /*    "#version 420\n"*/
-        /*    "in vec2 fragTexcoords;\n"*/
-        /*    "in vec3 fragTint;\n"*/
-        /*    "out vec4 outColor;\n"*/
-        /*    "uniform sampler2D spriteTexture;\n"*/
-        /*    "void main()\n"*/
-        /*    "{\n"*/
-        /*    "    outColor = texture(spriteTexture, fragTexcoords) * vec4(fragTint, 1.0);\n"*/
-        /*    "}\n";*/
-
-        GLuint program = Gpu_CreateProgram((const char *)gSpriteVsData, (const char *)gSpriteFsData);
-        programArray.data[GPU_PROGRAM_SPRITE] = program;
+        GLuint program = Gpu_CreateProgram(gSpriteVsData, gSpriteFsData);
+        gGlPrograms[GPU_PROGRAM_SPRITE] = program;
 
         glNamedBufferStorage(vbo, sizeof(Gpu_SpriteVertex) * GPU_MAX_SPRITES * 4, NULL, GL_DYNAMIC_STORAGE_BIT);
         glNamedBufferStorage(ebo, sizeof(u32) * GPU_MAX_SPRITES * 6, NULL, GL_DYNAMIC_STORAGE_BIT);
@@ -126,32 +87,25 @@ static void Gpu_CoreStartup(void)
         glEnableVertexArrayAttrib(vao, 1);
         glEnableVertexArrayAttrib(vao, 2);
 
-        glVertexArrayAttribFormat(vao, 0, 2, GL_FLOAT, GL_FALSE, offsetof(Gpu_SpriteVertex, clipPosition));
-        glVertexArrayAttribFormat(vao, 1, 2, GL_FLOAT, GL_FALSE, offsetof(Gpu_SpriteVertex, texcoords));
-        glVertexArrayAttribFormat(vao, 2, 3, GL_FLOAT, GL_FALSE, offsetof(Gpu_SpriteVertex, tint));
-
         glVertexArrayAttribBinding(vao, 0, 0);
         glVertexArrayAttribBinding(vao, 1, 0);
         glVertexArrayAttribBinding(vao, 2, 0);
-    }
 
-    s_GpuContext = (Gpu_Context) 
-    {
-        .bufferArray = bufferArray,
-        .vaoArray = vaoArray,
-        .programArray = programArray,
-    };
+        glVertexArrayAttribFormat(vao, 0, 2, GL_FLOAT, GL_FALSE, offsetof(Gpu_SpriteVertex, clipPosition));
+        glVertexArrayAttribFormat(vao, 1, 2, GL_FLOAT, GL_FALSE, offsetof(Gpu_SpriteVertex, texcoords));
+        glVertexArrayAttribFormat(vao, 2, 3, GL_FLOAT, GL_FALSE, offsetof(Gpu_SpriteVertex, tint));
+    }
 }
 
-static void Gpu_CoreShutdown(void)
+void Gpu_Shutdown(void)
 {
-    Gpu_Context ctx = s_GpuContext;
+    glDeleteVertexArrays(ARR_LEN(gGlVaos), gGlVaos);
+    glDeleteBuffers(ARR_LEN(gGlBuffers), gGlBuffers);
 
-    glDeleteVertexArrays(ARR_LEN(ctx.vaoArray.data), ctx.vaoArray.data);
-    glDeleteBuffers(ARR_LEN(ctx.bufferArray.data), ctx.bufferArray.data);
+    for (u32 i = 0; i < ARR_LEN(gGlPrograms); i++)
+        glDeleteProgram(gGlPrograms[i]);
 
-    for (u32 i = 0; i < ARR_LEN(ctx.programArray.data); i++)
-        glDeleteProgram(ctx.programArray.data[i]);
+    Gpu_ShutdownOpenGL();
 }
 
 void Gpu_Clear(float r, float g, float b)
@@ -160,7 +114,7 @@ void Gpu_Clear(float r, float g, float b)
     glClear(GL_COLOR_BUFFER_BIT);
 }
 
-static Gpu_SpriteVertex Gpu_GetSpriteVertex(Gpu_Sprite sprite, Gpu_Texture texture, Float2 offset)
+static Gpu_SpriteVertex Gpu_GetSpriteVertex(Gpu_Sprite sprite, Gpu_Handle texture, Float2 offset)
 {
     int width, height; Os_GetWindowSize(&width, &height);
     Float2 center = CreateFloat2(sprite.screenX, sprite.screenY);
@@ -174,7 +128,7 @@ static Gpu_SpriteVertex Gpu_GetSpriteVertex(Gpu_Sprite sprite, Gpu_Texture textu
     Float2 textureCenter = CreateFloat2(textureTopRight.x + textureHalfExtents.x, textureTopRight.y + textureHalfExtents.y);
     Float2 textureHalfOffset = ScaleFloat2(textureHalfExtents, offset);
     Float2 texturePosition = AddFloat2(textureCenter, textureHalfOffset);
-    Float2 texcoords = CreateFloat2(texturePosition.x / texture.width, texturePosition.y / texture.height);
+    Float2 texcoords = CreateFloat2(texturePosition.x / gGlTextures[texture].width, texturePosition.y / gGlTextures[texture].height);
 
     return (Gpu_SpriteVertex)
     {
@@ -186,10 +140,8 @@ static Gpu_SpriteVertex Gpu_GetSpriteVertex(Gpu_Sprite sprite, Gpu_Texture textu
 
 void Gpu_SubmitSprites(Gpu_SpritePass pass)
 {
-    Gpu_Context ctx = s_GpuContext;
     Gpu_SpriteVertex vertices[GPU_MAX_SPRITES * 4];
     u32 indices[GPU_MAX_SPRITES * 6];
-    Gpu_Texture texture = s_GpuContext.textures[pass.texture.dataUint];
 
     for (int i = 0; i < pass.spriteCount; i++)
     {
@@ -201,10 +153,10 @@ void Gpu_SubmitSprites(Gpu_SpritePass pass)
         Float2 bottomRight = CreateFloat2(1, -1);
 
         int vi = i * 4;
-        vertices[vi + 0] = Gpu_GetSpriteVertex(sprite, texture, bottomLeft);
-        vertices[vi + 1] = Gpu_GetSpriteVertex(sprite, texture, topLeft); 
-        vertices[vi + 2] = Gpu_GetSpriteVertex(sprite, texture, topRight); 
-        vertices[vi + 3] = Gpu_GetSpriteVertex(sprite, texture, bottomRight); 
+        vertices[vi + 0] = Gpu_GetSpriteVertex(sprite, pass.texture, bottomLeft);
+        vertices[vi + 1] = Gpu_GetSpriteVertex(sprite, pass.texture, topLeft); 
+        vertices[vi + 2] = Gpu_GetSpriteVertex(sprite, pass.texture, topRight); 
+        vertices[vi + 3] = Gpu_GetSpriteVertex(sprite, pass.texture, bottomRight); 
 
         int ei = i * 6;
         indices[ei + 0] = vi + 0;
@@ -215,46 +167,45 @@ void Gpu_SubmitSprites(Gpu_SpritePass pass)
         indices[ei + 5] = vi + 0;
     }
 
-    glNamedBufferSubData(ctx.bufferArray.data[GPU_BUFFER_SPRITE_VERTEX], 0, sizeof(vertices), vertices);
-    glNamedBufferSubData(ctx.bufferArray.data[GPU_BUFFER_SPRITE_INDEX], 0, sizeof(indices), indices);
-    glUseProgram(ctx.programArray.data[GPU_PROGRAM_SPRITE]);
-    glBindTextureUnit(0, texture.handle);
-    glBindVertexArray(ctx.vaoArray.data[GPU_VAO_SPRITE]);
+    glNamedBufferSubData(gGlBuffers[GPU_BUFFER_SPRITE_VERTEX], 0, sizeof(vertices), vertices);
+    glNamedBufferSubData(gGlBuffers[GPU_BUFFER_SPRITE_INDEX], 0, sizeof(indices), indices);
+    glUseProgram(gGlPrograms[GPU_PROGRAM_SPRITE]);
+    glBindTextureUnit(0, gGlTextures[pass.texture].name);
+    glBindVertexArray(gGlVaos[GPU_VAO_SPRITE]);
     glDrawElements(GL_TRIANGLES, pass.spriteCount * 6, GL_UNSIGNED_INT, 0);
 }
 
 Gpu_Handle Gpu_CreateTexture(int width, int height, void *data)
 {
-    for (u32 i = 0; i < ARR_LEN(s_GpuContext.textures); i++)
+    for (u32 i = 0; i < ARR_LEN(gGlTextures); i++)
     {
-        if (!s_GpuContext.textures[i].isUsed)
+        if (!gGlTextures[i].isUsed)
         {
-            GLuint handle;
-            glCreateTextures(GL_TEXTURE_2D, 1, &handle);
-            glTextureStorage2D(handle, 1, GL_RGBA8, width, height);
-            glTextureSubImage2D(handle, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
+            GLuint name;
+            glCreateTextures(GL_TEXTURE_2D, 1, &name);
+            glTextureStorage2D(name, 1, GL_RGBA8, width, height);
+            glTextureSubImage2D(name, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
 
-            s_GpuContext.textures[i] = (Gpu_Texture)
+            gGlTextures[i] = (Gpu_Texture)
             {
-                .handle = handle,
+                .name = name,
                 .width = width,
                 .height = height,
                 .isUsed = true,
             };
 
-            return (Gpu_Handle) { .dataUint = i };
+            return i;
         }
     }
 
     assert(false && "No available texture slots");
-    return (Gpu_Handle) {0};
+    return -1;
 }
 
-void Gpu_FreeTexture(Gpu_Handle handle)
+void Gpu_FreeTexture(Gpu_Handle texture)
 {
-    Gpu_Texture *texture = &s_GpuContext.textures[handle.dataUint];
-    texture->isUsed = false;
-    glDeleteTextures(1, &texture->handle);
+    gGlTextures[texture].isUsed = false;
+    glDeleteTextures(1, &gGlTextures[texture].name);
 }
 
 static void Gpu_LogDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, GLchar const* message, void const* userData)
@@ -321,201 +272,4 @@ static GLuint Gpu_CreateProgram(const char *vsSource, const char *fsSource)
     glDeleteShader(fragmentShader);
 
     return program;
-}
-
-////////////////////////////////////
-// Linux EGL-based OpenGL loader
-//
-
-#ifdef OS_LINUX
-
-#define GLAD_EGL_IMPLEMENTATION
-#include "extern/egl.h"
-#undef GLAD_EGL_IMPLEMENTATION
-
-typedef struct {
-    EGLDisplay display;
-    EGLSurface surface;
-    EGLContext context;
-} Gpu_LinuxContext;
-
-static Gpu_LinuxContext gpuLinux;
-
-static void Gpu_LinuxStartup()
-{
-    EGLint attributes[] = 
-    {
-        EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-        EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
-        EGL_RED_SIZE, 8,
-        EGL_GREEN_SIZE, 8,
-        EGL_BLUE_SIZE, 8,
-        EGL_DEPTH_SIZE, 24,
-        EGL_NONE
-    };
-
-#define CHECK(expr) if (!(expr)) assert(false)
-    CHECK(gladLoaderLoadEGL(NULL));
-    EGLDisplay display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-    CHECK(display != EGL_NO_DISPLAY);
-    CHECK(eglInitialize(display, NULL, NULL));
-    CHECK(gladLoaderLoadEGL(display));
-    CHECK(eglBindAPI(EGL_OPENGL_API));
-    EGLConfig config;
-    EGLint configCount;
-    CHECK(eglChooseConfig(display, attributes, &config, 1, &configCount));
-    CHECK(configCount >= 1);
-    EGLContext context = eglCreateContext(display, config, EGL_NO_CONTEXT, NULL);
-    CHECK(context != EGL_NO_CONTEXT);
-    EGLNativeWindowType window = (EGLNativeWindowType)Os_GetNativeWindowHandle();
-    CHECK(window);
-    EGLSurface surface = eglCreateWindowSurface(display, config, window, NULL);
-    CHECK(surface != EGL_NO_SURFACE);
-    CHECK(eglMakeCurrent(display, surface, surface, context));
-    CHECK(gladLoaderLoadGL());
-#undef CHECK
-
-    gpuLinux = (Gpu_LinuxContext) {
-        .display = display,
-        .surface = surface,
-        .context = context,
-    };
-}
-
-static void Gpu_LinuxShutdown()
-{
-    EGLDisplay display = gpuLinux.display;
-    EGLSurface surface = gpuLinux.surface;
-    EGLContext context = gpuLinux.context;
-
-    eglDestroySurface(display, surface);
-    eglDestroyContext(display, context);
-    eglTerminate(display);
-}
-
-static void Gpu_LinuxSwapBuffers()
-{
-    EGLDisplay display = gpuLinux.display;
-    EGLSurface surface = gpuLinux.surface;
-
-    eglSwapBuffers(display, surface);
-}
-
-#endif // OS_LINUX
-
-///////////////////////////////////////
-// Windows WGL-based OpenGL loader
-//
-
-#ifdef OS_WIN32
-
-#define GLAD_WGL_IMPLEMENTATION
-#include "extern/wgl.h"
-#undef GLAD_WGL_IMPLEMENTATION
-
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-
-#pragma comment(lib, "opengl32")
-#pragma comment(lib, "gdi32")
-
-typedef struct {
-    HDC hdc;
-    HGLRC hglrc;
-} Gpu_Win32Context;
-
-static Gpu_Win32Context gpuWin32;
-
-static void Gpu_Win32Startup()
-{
-    PIXELFORMATDESCRIPTOR pixelFormatInfo = (PIXELFORMATDESCRIPTOR) {
-        .nSize = sizeof(PIXELFORMATDESCRIPTOR),
-        .nVersion = 1,
-        .dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,
-        .iPixelType = PFD_TYPE_RGBA,
-        .cColorBits = 32,
-        .cDepthBits = 24,
-        .cStencilBits = 8,
-        .iLayerType = PFD_MAIN_PLANE,
-    };
-
-    int attributes[] = {
-        WGL_CONTEXT_MAJOR_VERSION_ARB, 4,
-        WGL_CONTEXT_MINOR_VERSION_ARB, 5,
-        WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB, 
-        WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
-        0,
-    };
-
-#define CHECK(expr) if (!(expr)) assert(false);
-    HWND hwnd = Os_GetNativeWindowHandle();
-    CHECK(hwnd);
-    HDC hdc = GetDC(hwnd);
-    CHECK(hdc);
-    int pixelFormat = ChoosePixelFormat(hdc, &pixelFormatInfo);
-    CHECK(pixelFormat);
-    CHECK(SetPixelFormat(hdc, pixelFormat, &pixelFormatInfo));
-    HGLRC tempHglrc = wglCreateContext(hdc);
-    CHECK(wglMakeCurrent(hdc, tempHglrc));
-    CHECK(gladLoaderLoadWGL(hdc));
-    HGLRC hglrc = wglCreateContextAttribsARB(hdc, NULL, attributes);
-    CHECK(hglrc);
-    CHECK(wglMakeCurrent(NULL, NULL));
-    CHECK(wglDeleteContext(tempHglrc));
-    CHECK(wglMakeCurrent(hdc, hglrc));
-    CHECK(gladLoaderLoadGL());
-#undef CHECK
-
-    gpuWin32 = (Gpu_Win32Context) {
-        .hdc = hdc,
-        .hglrc = hglrc,
-    };
-}
-
-static void Gpu_Win32Shutdown()
-{
-    wglDeleteContext(gpuWin32.hglrc);
-}
-
-static void Gpu_Win32SwapBuffers()
-{
-    SwapBuffers(gpuWin32.hdc);
-}
-
-#endif // OS_WIN32
-
-////////////////////////////////////
-// Conditionally compiled platform-dependent functions
-//
-
-void Gpu_Startup()
-{
-#ifdef OS_LINUX
-    Gpu_LinuxStartup();
-#endif 
-#ifdef OS_WIN32
-    Gpu_Win32Startup();
-#endif
-    Gpu_CoreStartup();
-}
-
-void Gpu_Shutdown()
-{
-    Gpu_CoreShutdown();
-#ifdef OS_LINUX
-    Gpu_LinuxShutdown();
-#endif
-#ifdef OS_WIN32
-    Gpu_Win32Shutdown();
-#endif
-}
-
-void Gpu_Present()
-{
-#ifdef OS_LINUX
-    Gpu_LinuxSwapBuffers();
-#endif
-#ifdef OS_WIN32
-    Gpu_Win32SwapBuffers();
-#endif
 }

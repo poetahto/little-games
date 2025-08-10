@@ -2,8 +2,8 @@
 
 for %%a in (%*) do set "%%a=1"
 
-if not "%release%"=="1" set debug=1
-if not "%snake%"=="1" if not "%poe%"=="1" if not "%sam%"=="1" set all=1
+if not "%release%"=="1" set "debug=1"
+if not "%snake%"=="1" if not "%poe%"=="1" if not "%sam%"=="1" set "all=1"
 
 if "%debug%"=="1" echo [debug mode]
 if "%release%"=="1" echo [release mode]
@@ -26,6 +26,7 @@ set link_opt=%clang_link_opt%
 set out=%clang_out% build\
 
 if not exist build mkdir build
-if "%snake%"=="1" %compile_cmd% main_snake.c %link_opt% %out%snake.exe
-if "%poe%"=="1" %compile_cmd% main_poe_scratch.c %link_opt% %out%poe_scratch.exe
-if "%sam%"=="1" %compile_cmd% main_sam_scratch.c %link_opt% %out%sam_scratch.exe
+if "%all%"=="1" set "poe=1" && set "sam=1" && set "snake=1"
+if "%snake%"=="1" %compile_cmd% main_snake.c %link_opt% %out%snake.exe && echo compiling snake
+if "%poe%"=="1" %compile_cmd% main_poe_scratch.c %link_opt% %out%poe_scratch.exe && echo compiling poe scratch
+if "%sam%"=="1" %compile_cmd% main_sam_scratch.c %link_opt% %out%sam_scratch.exe && echo compiling sam scratch

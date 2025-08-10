@@ -7,11 +7,9 @@
 #define DRAW_BLUE ((Draw_Color) { .b = 1 })
 #define DRAW_YELLOW ((Draw_Color) { .r = 1, .g = 1 })
 
-typedef struct Draw_Color Draw_Color;
-struct Draw_Color
-{
+typedef struct {
     float r, g, b;
-};
+} Draw_Color;
 
 void Draw_BeginFrame();
 void Draw_EndFrame();

@@ -12,6 +12,7 @@
 
 #define ARR_LEN(arr) (sizeof(arr) / sizeof(arr[0]))
 #define UNUSED(val) val = val
+#define CHECK(expr) if (!(expr)) assert(false)
 #define KB(count) (count * 1024)
 #define MB(count) (count * KB(1024))
 #define GB(count) (count * MB(1024))
@@ -26,20 +27,16 @@ typedef int32_t i32;
 typedef int16_t i16;
 typedef int8_t i8;
 
-typedef union Float2 Float2;
-union Float2
-{
+typedef union {
     struct { float x, y; };
     float data[2];
-};
+} Float2;
 
-typedef struct Arena Arena;
-struct Arena
-{
+typedef struct {
     unsigned char *buffer;
     int capacity;
     int head;
-};
+} Arena;
 
 u16 LfsrFibonacci(u16 *lfsr);
 void * ArenaAlloc(Arena *arena, int sizeBytes);

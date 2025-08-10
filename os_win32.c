@@ -15,9 +15,9 @@
 static Os_KeyCode Os_GetKeyCode(WPARAM wParam);
 static LRESULT WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-static Os_WindowEvent *s_CurrentEvent;
-static bool s_WasCurrentEventProcessed;
-static HWND s_OsHwnd;
+static Os_WindowEvent *gOsEvent;
+static bool gOsEventWasProcessed;
+static HWND gOsHwnd;
 
 int main()
 {
@@ -48,18 +48,21 @@ void Os_Log(const char *format, ...)
 
 void Os_CreateWindow(int width, int height)
 {
-    WNDCLASS wndClass = 
-    {
+    HCURSOR cursor = LoadCursor(NULL, IDC_ARROW);
+    assert(cursor != NULL);
+
+    WNDCLASS classInfo = {
         .lpfnWndProc = WndProc,
-        .hCursor = LoadCursor(NULL, IDC_ARROW),
+        .hCursor = cursor,
         .lpszClassName = "Game Window",
     };
 
-    RegisterClass(&wndClass);
+    ATOM class = RegisterClass(&classInfo);
+    assert(class != 0);
 
-    s_OsHwnd = CreateWindowEx(
+    gOsHwnd = CreateWindowEx(
             0,                                  // ex style
-            wndClass.lpszClassName,             // class
+            MAKEINTATOM(class),                 // class
             "Game Window",                      // title
             WS_OVERLAPPEDWINDOW | WS_VISIBLE,   // flags
             CW_USEDEFAULT,                      // x
@@ -70,24 +73,26 @@ void Os_CreateWindow(int width, int height)
             NULL,                               // menu
             GetModuleHandle(NULL),              // instance
             NULL);                              // param
+
+    assert(gOsHwnd != NULL);
 }
 
 void Os_GetWindowSize(int *width, int *height)
 {
     RECT rect;
-    GetClientRect(s_OsHwnd, &rect);
+    CHECK(GetClientRect(gOsHwnd, &rect));
     if (width) *width = rect.right - rect.left;
     if (height) *height = rect.bottom - rect.top;
 }
 
 void Os_FreeWindow()
 {
-    DestroyWindow(s_OsHwnd);
+    CHECK(DestroyWindow(gOsHwnd));
 }
 
 bool Os_PumpWindowEvents(Os_WindowEvent *event)
 {
-    s_CurrentEvent = event;
+    gOsEvent = event;
     MSG msg;
 
     if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
@@ -96,12 +101,12 @@ bool Os_PumpWindowEvents(Os_WindowEvent *event)
         DispatchMessage(&msg);
     }
 
-    return s_WasCurrentEventProcessed;
+    return gOsEventWasProcessed;
 }
 
 void * Os_GetNativeWindowHandle()
 {
-    return s_OsHwnd;
+    return gOsHwnd;
 }
 
 static Os_KeyCode Os_GetKeyCode(WPARAM wParam)
@@ -119,7 +124,7 @@ static Os_KeyCode Os_GetKeyCode(WPARAM wParam)
 
 static LRESULT WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 {
-    s_WasCurrentEventProcessed = false;
+    gOsEventWasProcessed = false;
 
     switch (message) 
     {
@@ -129,18 +134,18 @@ static LRESULT WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             if (justPressed)
             {
-                s_CurrentEvent->type = OS_EVENT_KEY_DOWN;
-                s_CurrentEvent->key = Os_GetKeyCode(wParam);
-                s_WasCurrentEventProcessed = true;
+                gOsEvent->type = OS_EVENT_KEY_DOWN;
+                gOsEvent->key = Os_GetKeyCode(wParam);
+                gOsEventWasProcessed = true;
             }
 
             break;
         }
         case WM_KEYUP:
         {
-            s_CurrentEvent->type = OS_EVENT_KEY_UP;
-            s_CurrentEvent->key = Os_GetKeyCode(wParam);
-            s_WasCurrentEventProcessed = true;
+            gOsEvent->type = OS_EVENT_KEY_UP;
+            gOsEvent->key = Os_GetKeyCode(wParam);
+            gOsEventWasProcessed = true;
             break;
         }
         case WM_DESTROY: 

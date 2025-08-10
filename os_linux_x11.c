@@ -4,54 +4,47 @@
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 
-typedef struct Os_X11Context Os_X11Context;
-struct Os_X11Context
-{
-    Display *display;
-    Window window;
-    int screen;
-    int width;
-    int height;
-};
-
-static Os_X11Context s_OsX11Context;
+static Display gX11Display;
+static Window gX11Window;
+static int gX11Screen;
+static int gX11Width;
+static int gX11Height;
 
 static Os_KeyCode Os_GetKeyCode(XEvent *event);
 
 void Os_CreateWindow(int width, int height)
 {
     Os_Log("Initializing X11");
-    Os_X11Context ctx;
 
     PROFILE("Open display")
     {
-        ctx.display = XOpenDisplay(NULL);
+        gX11Display = XOpenDisplay(NULL);
 
-        if (!ctx.display)
+        if (!gX11Display)
         {
             Os_Log("Failed to open connection to X11 display server");
             exit(1);
         }
 
-        ctx.screen = DefaultScreen(ctx.display);
+        gX11Screen = DefaultScreen(gX11Display);
     }
 
     PROFILE("Create window")
     {
-        XSetWindowAttributes attributes = 
-        {
-            .background_pixel = BlackPixel(ctx.display, ctx.screen),
+        XSetWindowAttributes attributes = {
+            .background_pixel = BlackPixel(gX11Display, gX11Screen),
             .event_mask = 0 
                 | KeyPressMask 
+                | KeyReleaseMask
                 | VisibilityChangeMask 
                 | StructureNotifyMask 
                 | ExposureMask
                 ,
         };
 
-        ctx.window = XCreateWindow(
-            ctx.display,                         // display
-            RootWindow(ctx.display, ctx.screen), // parent window
+        gX11Window = XCreateWindow(
+            gX11Display,                         // display
+            RootWindow(gX11Display, gX11Screen), // parent window
             0, 0,                                // position
             width, height,                       // size
             0,                                   // border width
@@ -61,8 +54,8 @@ void Os_CreateWindow(int width, int height)
             CWBackPixel | CWEventMask,           // the attributes being set 
             &attributes);
 
-        XStoreName(ctx.display, ctx.window, "Game Window");
-        XMapWindow(ctx.display, ctx.window);
+        XStoreName(gX11Display, gX11Window, "Game Window");
+        XMapWindow(gX11Display, gX11Window);
     }
 
     // Figure out our _actual_ size, in case the window manager decided
@@ -72,41 +65,36 @@ void Os_CreateWindow(int width, int height)
         Window r;
         int x, y;
         unsigned int w, h, bw, d;
-        XGetGeometry(ctx.display, ctx.window, &r, &x, &y, &w, &h, &bw, &d); 
-        ctx.width = w;
-        ctx.height = h;
+        XGetGeometry(gX11Display, gX11Window, &r, &x, &y, &w, &h, &bw, &d); 
+        gX11Width = w;
+        gX11Height = h;
     }
-
-    s_OsX11Context = ctx;
 }
 
 void Os_FreeWindow()
 {
-    Os_X11Context ctx = s_OsX11Context;
-    XDestroyWindow(ctx.display, ctx.window);
-    XCloseDisplay(ctx.display);
+    XDestroyWindow(gX11Display, gX11Window);
+    XCloseDisplay(gX11Display);
 }
 
 void Os_GetWindowSize(int *width, int *height)
 {
-    if (width) *width = s_OsX11Context.width;
-    if (height) *height = s_OsX11Context.height;
+    if (width) *width = gX11Width;
+    if (height) *height = gX11Height;
 }
 
 void * Os_GetNativeWindowHandle()
 {
-    return (void *)s_OsX11Context.window;
+    return (void *)gX11Window;
 }
 
 bool Os_PumpWindowEvents(Os_WindowEvent *currentEvent)
 {
-    Os_X11Context *ctx = &s_OsX11Context;
-
-    if (!XPending(ctx->display))
+    if (!XPending(gX11Display))
         return false;
 
     XEvent xevent;
-    XNextEvent(ctx->display, &xevent);
+    XNextEvent(gX11Display, &xevent);
 
     switch (xevent.type)
     {
@@ -121,10 +109,16 @@ bool Os_PumpWindowEvents(Os_WindowEvent *currentEvent)
             currentEvent->key = Os_GetKeyCode(&xevent);
             break;
         }
+        case KeyRelease:
+        {
+            currentEvent->type = OS_EVENT_KEY_UP;
+            currentEvent->key = Os_GetKeyCode(&xevent);
+            break;
+        }
         case ConfigureNotify:
         {
-            ctx->width = xevent.xconfigure.width;
-            ctx->height = xevent.xconfigure.height;
+            gX11Width = xevent.xconfigure.width;
+            gX11Height = xevent.xconfigure.height;
             break;
         }
     }
