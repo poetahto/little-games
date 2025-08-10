@@ -20,9 +20,7 @@ link=$gcc_link
 out=$gcc_out
 
 mkdir -p build
-cd build
 if [ -v all ]; then snake=1 poe=1 sam=1; fi
-if [ -v snake ]; then echo "compiling snake"; $compile ../main_snake.c $link $out snake; fi
-if [ -v poe ]; then echo "compiling poe scratch"; $compile ../main_poe_scratch.c $link $out poe_scratch; fi
-if [ -v sam ]; then echo "compiling sam scratch"; $compile ../main_sam_scratch.c $link $out sam_scratch; fi
-cd ..
+if [ -v snake ]; then echo "compiling snake"; $compile main_snake.c $link $out build/snake; fi
+if [ -v poe ]; then echo "compiling poe scratch"; $compile main_poe_scratch.c $link $out build/poe_scratch; fi
+if [ -v sam ]; then echo "compiling sam scratch"; $compile main_sam_scratch.c $link $out build/sam_scratch; fi
