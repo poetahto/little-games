@@ -1,6 +1,8 @@
 #ifndef GAMES_GPU_H
 #define GAMES_GPU_H
 
+#include "core.h"
+
 typedef int Gpu_Handle;
 
 typedef struct {
@@ -20,7 +22,8 @@ void Gpu_Shutdown(void);
 void Gpu_Present(void);
 void Gpu_Clear(float r, float g, float b);
 void Gpu_SubmitSprites(Gpu_SpritePass pass);
-Gpu_Handle Gpu_CreateTexture(int width, int height, void *data);
+Gpu_Handle Gpu_CreateTexture(Image image);
 void Gpu_FreeTexture(Gpu_Handle texture);
+void Gpu_GetTextureSize(Gpu_Handle texture, int *width, int *height);
 
 #endif // GAMES_GPU_H

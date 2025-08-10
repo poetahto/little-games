@@ -25,3 +25,13 @@ void Os_HeapFree(void *buffer)
 {
     free(buffer);
 }
+
+Arena Os_CreateArena(int capacity)
+{
+    return (Arena) { .buffer = Os_HeapAlloc(capacity), .capacity = capacity };
+}
+
+void Os_FreeArena(Arena arena)
+{
+    Os_HeapFree(arena.buffer);
+}

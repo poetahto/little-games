@@ -43,6 +43,24 @@ void MemoryClear(void *buffer, int sizeBytes)
         b[i] = 0;
 }
 
+Image ImageLoadBmp(const u8 *data, Arena *arena)
+{
+    // Quick and dirty BMP loading.
+    // https://en.wikipedia.org/wiki/BMP_file_format#DIBs_in_memory
+
+    int width = *(int *)(data + 0x12);
+    int height = *(int *)(data + 0x16);
+    int sizeBytes = width * height * 4;
+    u8 *pixels = ArenaAlloc(arena, sizeBytes);
+    MemoryCopy(pixels, data + *(int *)(data + 0x0A), sizeBytes);
+
+    return (Image) {
+        .width = width,
+        .height = height,
+        .pixels = pixels,
+    };
+}
+
 Float2 CreateFloat2(float x, float y)
 {
     return (Float2) { .x = x, .y = y };

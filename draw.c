@@ -4,19 +4,11 @@
 
 static Gpu_Handle gDrawRectTexture;
 
-INCBIN(DrawRectImage, "resources/smile.bmp");
-
 void Draw_Startup()
 {
-    // Quick and dirty BMP loading.
-    // https://en.wikipedia.org/wiki/BMP_file_format#DIBs_in_memory
-    char *bmpData = (char *)gDrawRectImageData;
-    int bmpPixelOffset = *(int *)(bmpData + 0x0A);
-    int bmpWidth = *(int *)(bmpData + 0x12);
-    int bmpHeight = *(int *)(bmpData + 0x16);
-    char *bmpPixels = bmpData + bmpPixelOffset;
-
-    gDrawRectTexture = Gpu_CreateTexture(bmpWidth, bmpHeight, bmpPixels);
+    int whitePixel = 0xFFFFFFFF;
+    Image rectImage = { .width = 1, .height = 1, .pixels = &whitePixel };
+    gDrawRectTexture = Gpu_CreateTexture(rectImage);
 }
 
 void Draw_Shutdown()
@@ -34,10 +26,30 @@ void Draw_EndFrame()
     Gpu_Present();
 }
 
+void Draw_Texture(Gpu_Handle texture, int x, int y, int width, int height, Draw_Color color)
+{
+    int textureWidth, textureHeight; 
+    Gpu_GetTextureSize(texture, &textureWidth, &textureHeight);
+
+    Gpu_Sprite sprite = {
+        .textureX = 0, .textureY = 0, .textureWidth = textureWidth, .textureHeight = textureHeight,
+        .screenX = (float)x, .screenY = (float)y, .screenWidth = (float)width, .screenHeight = (float)height,
+        .r = color.r, .g = color.g, .b = color.b,
+    };
+
+    Gpu_SpritePass pass = {
+        .spriteCount = 1,
+        .sprites = &sprite,
+        .texture = texture,
+    };
+
+    Gpu_SubmitSprites(pass);
+}
+
 void Draw_Rectangle(int x, int y, int width, int height, Draw_Color color)
 {
     Gpu_Sprite sprite = {
-        .textureX = 0, .textureY = 0, .textureWidth = 256, .textureHeight = 256,
+        .textureX = 0, .textureY = 0, .textureWidth = 1, .textureHeight = 1,
         .screenX = (float)x, .screenY = (float)y, .screenWidth = (float)width, .screenHeight = (float)height,
         .r = color.r, .g = color.g, .b = color.b,
     };

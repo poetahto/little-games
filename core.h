@@ -14,8 +14,8 @@
 #define UNUSED(val) val = val
 #define CHECK(expr) if (!(expr)) assert(false)
 #define KB(count) (count * 1024)
-#define MB(count) (count * KB(1024))
-#define GB(count) (count * MB(1024))
+#define MB(count) (count * 1024 * 1024)
+#define GB(count) (count * 1024 * 1024 * 1024)
 
 typedef uint64_t u64;
 typedef uint32_t u32;
@@ -38,12 +38,19 @@ typedef struct {
     int head;
 } Arena;
 
+typedef struct {
+    void *pixels;
+    int width;
+    int height;
+} Image;
+
 u16 LfsrFibonacci(u16 *lfsr);
 void * ArenaAlloc(Arena *arena, int sizeBytes);
 void ArenaRollback(Arena *arena, int count);
 void ArenaReset(Arena *arena);
 void MemoryCopy(void *dest, const void *src, int count);
 void MemoryClear(void *buffer, int sizeBytes);
+Image ImageLoadBmp(const u8 *data, Arena *arena);
 Float2 CreateFloat2(float x, float y);
 Float2 AddFloat2(Float2 a, Float2 b);
 Float2 SubtractFloat2(Float2 a, Float2 b);

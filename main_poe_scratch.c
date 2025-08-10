@@ -6,13 +6,18 @@
 
 #define size 50
 
+INCBIN(PlayerImage, "resources/smile.bmp");
+
 void Entrypoint()
 {
     Os_CreateWindow(800, 600);
     Gpu_Startup();
     Draw_Startup();
 
+    Arena arena = Os_CreateArena(MB(16));
     bool isRunning = true;
+    Gpu_Handle playerTexture = Gpu_CreateTexture(ImageLoadBmp(gPlayerImageData, &arena));
+    ArenaReset(&arena);
 
     while (isRunning)
     {
@@ -42,7 +47,7 @@ void Entrypoint()
         Draw_BeginFrame();
         Draw_Grid(size);
         static int x = (int)(size * 0.5f);
-        Draw_Rectangle(x += size, (int)(size * 0.5f), size, size, DRAW_YELLOW);
+        Draw_Texture(playerTexture, x += size, (int)(size * 0.5f), size, size, DRAW_YELLOW);
         Draw_EndFrame();
 
         Os_Sleep(500);

@@ -32,6 +32,8 @@ void Os_Random(void *buffer, int bufferLength);
 void Os_Log(const char *message, ...);
 void * Os_HeapAlloc(int sizeBytes);
 void Os_HeapFree(void *buffer);
+Arena Os_CreateArena(int capacity);
+void Os_FreeArena(Arena arena);
 void Os_CreateWindow(int width, int height);
 void Os_GetWindowSize(int *width, int *height);
 void Os_FreeWindow();

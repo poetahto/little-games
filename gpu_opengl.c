@@ -175,7 +175,7 @@ void Gpu_SubmitSprites(Gpu_SpritePass pass)
     glDrawElements(GL_TRIANGLES, pass.spriteCount * 6, GL_UNSIGNED_INT, 0);
 }
 
-Gpu_Handle Gpu_CreateTexture(int width, int height, void *data)
+Gpu_Handle Gpu_CreateTexture(Image image)
 {
     for (u32 i = 0; i < ARR_LEN(gGlTextures); i++)
     {
@@ -183,17 +183,14 @@ Gpu_Handle Gpu_CreateTexture(int width, int height, void *data)
         {
             GLuint name;
             glCreateTextures(GL_TEXTURE_2D, 1, &name);
-            glTextureStorage2D(name, 1, GL_RGBA8, width, height);
-            glTextureSubImage2D(name, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
-            /*glTextureParameteri(name, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);*/
-            /*glTextureParameteri(name, GL_TEXTURE_MAG_FILTER, GL_LINEAR);*/
-            /*glGenerateTextureMipmap(name);*/
+            glTextureStorage2D(name, 1, GL_RGBA8, image.width, image.height);
+            glTextureSubImage2D(name, 0, 0, 0, image.width, image.height, GL_RGBA, GL_UNSIGNED_BYTE, image.pixels);
 
             gGlTextures[i] = (Gpu_Texture)
             {
                 .name = name,
-                .width = width,
-                .height = height,
+                .width = image.width,
+                .height = image.height,
                 .isUsed = true,
             };
 
@@ -209,6 +206,12 @@ void Gpu_FreeTexture(Gpu_Handle texture)
 {
     gGlTextures[texture].isUsed = false;
     glDeleteTextures(1, &gGlTextures[texture].name);
+}
+
+void Gpu_GetTextureSize(Gpu_Handle texture, int *width, int *height)
+{
+    if (width) *width = gGlTextures[texture].width;
+    if (height) *height = gGlTextures[texture].height;
 }
 
 static void Gpu_LogDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, GLchar const* message, void const* userData)
