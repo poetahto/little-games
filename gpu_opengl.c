@@ -49,8 +49,8 @@ static GLuint gGlVaos[GPU_VAO_COUNT];
 static GLuint gGlPrograms[GPU_PROGRAM_COUNT];
 static Gpu_Texture gGlTextures[GPU_MAX_TEXTURES];
 
-INCTXT(SpriteVs, "resources/sprite.vert");
-INCTXT(SpriteFs, "resources/sprite.frag");
+INCTXT(GlSpriteVs, "resources/sprite.vert");
+INCTXT(GlSpriteFs, "resources/sprite.frag");
 
 static void Gpu_LogDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, GLchar const* message, void const* userData);
 static GLuint Gpu_CreateProgram(const char *vsSource, const char *fsSource);
@@ -74,7 +74,7 @@ void Gpu_Startup(void)
         GLuint ebo = gGlBuffers[GPU_BUFFER_SPRITE_INDEX];
         GLuint vao = gGlVaos[GPU_VAO_SPRITE];
 
-        GLuint program = Gpu_CreateProgram(gSpriteVsData, gSpriteFsData);
+        GLuint program = Gpu_CreateProgram(gGlSpriteVsData, gGlSpriteFsData);
         gGlPrograms[GPU_PROGRAM_SPRITE] = program;
 
         glNamedBufferStorage(vbo, sizeof(Gpu_SpriteVertex) * GPU_MAX_SPRITES * 4, NULL, GL_DYNAMIC_STORAGE_BIT);
@@ -185,6 +185,9 @@ Gpu_Handle Gpu_CreateTexture(int width, int height, void *data)
             glCreateTextures(GL_TEXTURE_2D, 1, &name);
             glTextureStorage2D(name, 1, GL_RGBA8, width, height);
             glTextureSubImage2D(name, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
+            /*glTextureParameteri(name, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);*/
+            /*glTextureParameteri(name, GL_TEXTURE_MAG_FILTER, GL_LINEAR);*/
+            /*glGenerateTextureMipmap(name);*/
 
             gGlTextures[i] = (Gpu_Texture)
             {

@@ -4,10 +4,19 @@
 
 static Gpu_Handle gDrawRectTexture;
 
+INCBIN(DrawRectImage, "resources/smile.bmp");
+
 void Draw_Startup()
 {
-    u32 whitePixel = 0xFFFFFFFF;
-    gDrawRectTexture = Gpu_CreateTexture(1, 1, &whitePixel);
+    // Quick and dirty BMP loading.
+    // https://en.wikipedia.org/wiki/BMP_file_format#DIBs_in_memory
+    char *bmpData = (char *)gDrawRectImageData;
+    int bmpPixelOffset = *(int *)(bmpData + 0x0A);
+    int bmpWidth = *(int *)(bmpData + 0x12);
+    int bmpHeight = *(int *)(bmpData + 0x16);
+    char *bmpPixels = bmpData + bmpPixelOffset;
+
+    gDrawRectTexture = Gpu_CreateTexture(bmpWidth, bmpHeight, bmpPixels);
 }
 
 void Draw_Shutdown()
@@ -27,9 +36,8 @@ void Draw_EndFrame()
 
 void Draw_Rectangle(int x, int y, int width, int height, Draw_Color color)
 {
-    Gpu_Sprite sprite = 
-    {
-        .textureX = 0, .textureY = 0, .textureWidth = 1, .textureHeight = 1,
+    Gpu_Sprite sprite = {
+        .textureX = 0, .textureY = 0, .textureWidth = 256, .textureHeight = 256,
         .screenX = (float)x, .screenY = (float)y, .screenWidth = (float)width, .screenHeight = (float)height,
         .r = color.r, .g = color.g, .b = color.b,
     };
