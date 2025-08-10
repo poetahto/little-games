@@ -4,7 +4,7 @@
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 
-static Display gX11Display;
+static Display *gX11Display;
 static Window gX11Window;
 static int gX11Screen;
 static int gX11Width;
