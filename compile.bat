@@ -23,11 +23,9 @@ set clang_release_cmd=call clang -O2 %clang_compile_opt%
 if "%debug%"=="1" set compile_cmd=%clang_debug_cmd%
 if "%release%"=="1" set compile_cmd=%clang_release_cmd%
 set link_opt=%clang_link_opt%
-set out=%clang_out%
+set out=%clang_out% build\
 
 if not exist build mkdir build
-pushd build
-if "%snake%"=="1" %compile_cmd% ..\main_snake.c %link_opt% %out%snake.exe
-if "%poe%"=="1" %compile_cmd% ..\main_poe_scratch.c %link_opt% %out%poe_scratch.exe
-if "%sam%"=="1" %compile_cmd% ..\main_sam_scratch.c %link_opt% %out%sam_scratch.exe
-popd
+if "%snake%"=="1" %compile_cmd% main_snake.c %link_opt% %out%snake.exe
+if "%poe%"=="1" %compile_cmd% main_poe_scratch.c %link_opt% %out%poe_scratch.exe
+if "%sam%"=="1" %compile_cmd% main_sam_scratch.c %link_opt% %out%sam_scratch.exe

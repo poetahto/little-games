@@ -62,6 +62,9 @@ typedef struct {
 
 static Gpu_Context s_GpuContext;
 
+INCTXT(SpriteVs, "resources/sprite.vert");
+INCTXT(SpriteFs, "resources/sprite.frag");
+
 static void Gpu_LogDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, GLchar const* message, void const* userData);
 static GLuint Gpu_CreateProgram(const char *vsSource, const char *fsSource);
 
@@ -85,32 +88,32 @@ static void Gpu_CoreStartup(void)
         GLuint ebo = bufferArray.data[GPU_BUFFER_SPRITE_INDEX];
         GLuint vao = vaoArray.data[GPU_VAO_SPRITE];
 
-        const char *vsSource = 
-            "#version 420\n"
-            "layout (location = 0) in vec2 clipPosition;\n"
-            "layout (location = 1) in vec2 texcoords;\n"
-            "layout (location = 2) in vec3 tint;\n"
-            "out vec2 fragTexcoords;\n"
-            "out vec3 fragTint;\n"
-            "void main()\n"
-            "{\n"
-            "    gl_Position = vec4(clipPosition, 1.0, 1.0);\n"
-            "    fragTexcoords = texcoords;\n"
-            "    fragTint = tint;\n"
-            "}\n";
+        /*const char *vsSource = */
+        /*    "#version 420\n"*/
+        /*    "layout (location = 0) in vec2 clipPosition;\n"*/
+        /*    "layout (location = 1) in vec2 texcoords;\n"*/
+        /*    "layout (location = 2) in vec3 tint;\n"*/
+        /*    "out vec2 fragTexcoords;\n"*/
+        /*    "out vec3 fragTint;\n"*/
+        /*    "void main()\n"*/
+        /*    "{\n"*/
+        /*    "    gl_Position = vec4(clipPosition, 1.0, 1.0);\n"*/
+        /*    "    fragTexcoords = texcoords;\n"*/
+        /*    "    fragTint = tint;\n"*/
+        /*    "}\n";*/
+        /**/
+        /*const char *fsSource =*/
+        /*    "#version 420\n"*/
+        /*    "in vec2 fragTexcoords;\n"*/
+        /*    "in vec3 fragTint;\n"*/
+        /*    "out vec4 outColor;\n"*/
+        /*    "uniform sampler2D spriteTexture;\n"*/
+        /*    "void main()\n"*/
+        /*    "{\n"*/
+        /*    "    outColor = texture(spriteTexture, fragTexcoords) * vec4(fragTint, 1.0);\n"*/
+        /*    "}\n";*/
 
-        const char *fsSource =
-            "#version 420\n"
-            "in vec2 fragTexcoords;\n"
-            "in vec3 fragTint;\n"
-            "out vec4 outColor;\n"
-            "uniform sampler2D spriteTexture;\n"
-            "void main()\n"
-            "{\n"
-            "    outColor = texture(spriteTexture, fragTexcoords) * vec4(fragTint, 1.0);\n"
-            "}\n";
-
-        GLuint program = Gpu_CreateProgram(vsSource, fsSource);
+        GLuint program = Gpu_CreateProgram((const char *)gSpriteVsData, (const char *)gSpriteFsData);
         programArray.data[GPU_PROGRAM_SPRITE] = program;
 
         glNamedBufferStorage(vbo, sizeof(Gpu_SpriteVertex) * GPU_MAX_SPRITES * 4, NULL, GL_DYNAMIC_STORAGE_BIT);

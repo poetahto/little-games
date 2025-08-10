@@ -1,6 +1,8 @@
 #ifndef GAMES_CORE_H
 #define GAMES_CORE_H
 
+#include "extern/incbin.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
