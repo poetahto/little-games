@@ -1,8 +1,5 @@
 #include "core.h"
 
-#include <stdlib.h>
-#include <string.h>
-
 u16 LfsrFibonacci(u16 *lfsr)
 {
     u16 bit = ((*lfsr >> 0) ^ (*lfsr >> 2) ^ (*lfsr >> 3) ^ (*lfsr >> 5)) & 1;
@@ -31,12 +28,19 @@ void ArenaReset(Arena *arena)
 
 void MemoryCopy(void *dest, const void *src, int count)
 {
-    memcpy(dest, src, count);
+    u8 *bd = dest;
+    const u8 *bs = src;
+
+    for (int i = 0; i < count; i++)
+        bd[i] = bs[i];
 }
 
 void MemoryClear(void *buffer, int sizeBytes)
 {
-    memset(buffer, 0, sizeBytes);
+    u8 *b = buffer;
+
+    for (int i = 0; i < sizeBytes; i++)
+        b[i] = 0;
 }
 
 Float2 CreateFloat2(float x, float y)

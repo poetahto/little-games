@@ -48,6 +48,8 @@ void Os_Log(const char *format, ...)
 
 void Os_CreateWindow(int width, int height)
 {
+    // NOTE(poe): Explicitly load default cursor to avoid spinny thing
+    // on startup
     HCURSOR cursor = LoadCursor(NULL, IDC_ARROW);
     assert(cursor != NULL);
 
@@ -59,6 +61,17 @@ void Os_CreateWindow(int width, int height)
 
     ATOM class = RegisterClass(&classInfo);
     assert(class != 0);
+    DWORD style = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
+
+    // NOTE(poe): Calculate the true window rect needed to achieve the
+    // desired width + height (otherwise, titlebar is included in size)
+    RECT windowRect = {
+        .left = 0,
+        .right = width,
+        .bottom = height,
+        .top = 0,
+    };
+    CHECK(AdjustWindowRect(&windowRect, style, FALSE));
 
     gOsHwnd = CreateWindowEx(
             0,                                  // ex style
@@ -67,8 +80,8 @@ void Os_CreateWindow(int width, int height)
             WS_OVERLAPPEDWINDOW | WS_VISIBLE,   // flags
             CW_USEDEFAULT,                      // x
             CW_USEDEFAULT,                      // y
-            width,                              // width
-            height,                             // height
+            windowRect.right - windowRect.left, // width
+            windowRect.bottom - windowRect.top, // height
             NULL,                               // parent
             NULL,                               // menu
             GetModuleHandle(NULL),              // instance
