@@ -1,3 +1,3 @@
 #!/bin/bash
 
-./build/poe_scratch
+./build/snake

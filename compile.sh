@@ -3,7 +3,7 @@
 for arg in "$@"; do declare $arg='1'; done
 
 if [ ! -v release ]; then debug=1; fi
-if [ ! -v snake ] && [ ! -v poe ] && [ ! -v sam ]; then all=1; fi
+if [ ! -v snake ] && [ ! -v poe ] && [ ! -v sam ]; then snake=1; fi
 
 if [ -v debug ]; then echo "[debug mode]"; fi
 if [ -v release ]; then echo "[release mode]"; fi

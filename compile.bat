@@ -3,7 +3,7 @@
 for %%a in (%*) do set "%%a=1"
 
 if not "%release%"=="1" set "debug=1"
-if not "%snake%"=="1" if not "%poe%"=="1" if not "%sam%"=="1" set "all=1"
+if not "%snake%"=="1" if not "%poe%"=="1" if not "%sam%"=="1" set "snake=1"
 
 if "%debug%"=="1" echo [debug mode]
 if "%release%"=="1" echo [release mode]
