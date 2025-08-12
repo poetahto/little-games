@@ -10,16 +10,31 @@
 #define WORLD_WIDTH (SCREEN_WIDTH / SIZE)
 #define WORLD_HEIGHT (SCREEN_HEIGHT / SIZE)
 
-INCBIN(PlayerImage, "resources/smile.bmp");
-
 typedef enum { UP, DOWN, LEFT, RIGHT } Direction;
+
+typedef struct {
+    int x, y;
+} Vector2i;
 
 static u16 gSnakeRandomSeed;
 
-void GetRandomFoodPosition(int position[2])
+bool IsBlocked(const int *world, int x, int y)
 {
-    position[0] = (LfsrFibonacci(&gSnakeRandomSeed) % (WORLD_WIDTH - 1));
-    position[1] = (LfsrFibonacci(&gSnakeRandomSeed) % (WORLD_HEIGHT - 1));
+    return world[x * WORLD_HEIGHT + y] > 0;
+}
+
+Vector2i GetRandomFoodPosition(const int *world)
+{
+    Vector2i availablePositions[WORLD_WIDTH * WORLD_HEIGHT];
+    int availablePositionCount = 0;
+
+    for (int x = 0; x < WORLD_WIDTH; x++)
+        for (int y = 0; y < WORLD_HEIGHT; y++)
+            if (!IsBlocked(world, x, y))
+                availablePositions[availablePositionCount++] = (Vector2i) { .x = x, .y = y };
+
+    int randomIndex = LfsrFibonacci(&gSnakeRandomSeed) % availablePositionCount;
+    return availablePositions[randomIndex];
 }
 
 void Entrypoint()
@@ -37,8 +52,7 @@ void Entrypoint()
     int world[WORLD_WIDTH][WORLD_HEIGHT] = { 0 };
     int snakeLength = 3;
     int snakeHead[2] = { 4, 2 };
-    int foodPosition[2] = { 11, 10 };
-    GetRandomFoodPosition(foodPosition);
+    Vector2i foodPosition = GetRandomFoodPosition((const int *)world);
 
     while (isRunning)
     {
@@ -54,10 +68,10 @@ void Entrypoint()
                     switch (event.key)
                     {
                         case OS_KEY_ESCAPE: isRunning = false; break;
-                        case OS_KEY_UP: currentDirection = UP; break;
-                        case OS_KEY_DOWN: currentDirection = DOWN; break;
-                        case OS_KEY_LEFT: currentDirection = LEFT; break;
-                        case OS_KEY_RIGHT: currentDirection = RIGHT; break;
+                        case OS_KEY_UP: if (currentDirection != DOWN) currentDirection = UP; break;
+                        case OS_KEY_DOWN: if (currentDirection != UP) currentDirection = DOWN; break;
+                        case OS_KEY_LEFT: if (currentDirection != RIGHT) currentDirection = LEFT; break;
+                        case OS_KEY_RIGHT: if (currentDirection != LEFT) currentDirection = RIGHT; break;
                         default: break;
                     }
                 }
@@ -76,9 +90,14 @@ void Entrypoint()
             default: assert(false); break;
         }
 
-        if (snakeHead[0] == foodPosition[0] && snakeHead[1] == foodPosition[1])
+        if (snakeHead[0] > WORLD_WIDTH - 1) snakeHead[0] = 0;
+        if (snakeHead[0] < 0) snakeHead[0] = WORLD_WIDTH - 1;
+        if (snakeHead[1] > WORLD_HEIGHT - 1) snakeHead[1] = 0;
+        if (snakeHead[1] < 0) snakeHead[1] = WORLD_HEIGHT - 1;
+
+        if (snakeHead[0] == foodPosition.x && snakeHead[1] == foodPosition.y)
         {
-            GetRandomFoodPosition(foodPosition);
+            foodPosition = GetRandomFoodPosition((const int *) world);
             snakeLength++;
 
             for (int x = 0; x < WORLD_WIDTH; x++)
@@ -87,13 +106,14 @@ void Entrypoint()
                         world[x][y]++;
         }
 
-        if (world[snakeHead[0]][snakeHead[1]] > 0 || snakeHead[0] > WORLD_WIDTH - 1 || snakeHead[1] > WORLD_HEIGHT - 1 || snakeHead[0] < 0 || snakeHead[1] < 0)
+        if (IsBlocked((const int *)world, snakeHead[0], snakeHead[1]))
         {
             MemoryClear(world, sizeof(world));
             snakeHead[0] = 4;
             snakeHead[1] = 2;
-            GetRandomFoodPosition(foodPosition);
+            foodPosition = GetRandomFoodPosition((const int *)world);
             snakeLength = 3;
+            currentDirection = UP;
         }
 
         for (int x = 0; x < WORLD_WIDTH; x++)
@@ -102,7 +122,7 @@ void Entrypoint()
 
         Draw_BeginFrame();
         Draw_Rectangle((snakeHead[0] * SIZE) + (0.5f * SIZE), (snakeHead[1] * SIZE) + (0.5f * SIZE), SIZE, SIZE, DRAW_WHITE);
-        Draw_Rectangle((foodPosition[0] * SIZE) + (0.5f * SIZE), (foodPosition[1] * SIZE) + (0.5f * SIZE), SIZE, SIZE, DRAW_GREEN);
+        Draw_Rectangle((foodPosition.x * SIZE) + (0.5f * SIZE), (foodPosition.y * SIZE) + (0.5f * SIZE), SIZE, SIZE, DRAW_GREEN);
 
         for (int x = 0; x < WORLD_WIDTH; x++)
             for (int y = 0; y < WORLD_HEIGHT; y++)
