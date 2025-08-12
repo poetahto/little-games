@@ -6,6 +6,7 @@ static Gpu_Handle gDrawRectTexture;
 
 void Draw_Startup()
 {
+    Gpu_Startup();
     int whitePixel = 0xFFFFFFFF;
     Image rectImage = { .width = 1, .height = 1, .pixels = &whitePixel };
     gDrawRectTexture = Gpu_CreateTexture(rectImage);
@@ -14,6 +15,7 @@ void Draw_Startup()
 void Draw_Shutdown()
 {
     Gpu_FreeTexture(gDrawRectTexture);
+    Gpu_Shutdown();
 }
 
 void Draw_BeginFrame()

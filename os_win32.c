@@ -106,6 +106,7 @@ void Os_FreeWindow()
 bool Os_PumpWindowEvents(Os_WindowEvent *event)
 {
     gOsEvent = event;
+    gOsEventWasProcessed = false;
     MSG msg;
 
     if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
@@ -137,8 +138,6 @@ static Os_KeyCode Os_GetKeyCode(WPARAM wParam)
 
 static LRESULT WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 {
-    gOsEventWasProcessed = false;
-
     switch (message) 
     {
         case WM_KEYDOWN:
