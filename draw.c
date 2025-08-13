@@ -2,11 +2,21 @@
 #include "draw.h"
 #include "gpu.h"
 
+typedef struct Draw_SpriteNode Draw_SpriteNode;
+struct Draw_SpriteNode {
+    Gpu_Sprite sprite;
+    Draw_SpriteNode *next;
+};
+
+static Draw_SpriteNode *gDrawFirstSprite = NULL;
+static Draw_SpriteNode *gDrawLastSprite = NULL;
 static Gpu_Handle gDrawRectTexture;
+static Arena gDrawArena;
 
 void Draw_Startup()
 {
     Gpu_Startup();
+    gDrawArena = Os_CreateArena(MB(16));
     int whitePixel = 0xFFFFFFFF;
     Image rectImage = { .width = 1, .height = 1, .pixels = &whitePixel };
     gDrawRectTexture = Gpu_CreateTexture(rectImage);
@@ -14,17 +24,37 @@ void Draw_Startup()
 
 void Draw_Shutdown()
 {
+    Os_FreeArena(gDrawArena);
     Gpu_FreeTexture(gDrawRectTexture);
     Gpu_Shutdown();
 }
 
 void Draw_BeginFrame()
 {
+    ArenaReset(&gDrawArena);
     Gpu_Clear(0, 0, 0);
 }
 
 void Draw_EndFrame()
 {
+    Gpu_SpritePass pass;
+    pass.spriteCount = 0;
+    pass.texture = gDrawRectTexture;
+    Draw_SpriteNode *spriteIterator = gDrawFirstSprite;
+
+    while (spriteIterator != NULL)
+    {
+        spriteIterator = spriteIterator->next;
+        pass.spriteCount++;
+    }
+
+    Gpu_Sprite *sprites = ArenaAlloc(&gDrawArena, pass.spriteCount * sizeof(Gpu_Sprite));
+
+    for (int i = 0; i < pass.spriteCount; i++)
+        sprites[i] = (gDrawFirstSprite + i)->sprite;
+
+    pass.sprites = sprites;
+    Gpu_SubmitSprites(pass);
     Gpu_Present();
 }
 
@@ -56,13 +86,19 @@ void Draw_Rectangle(int x, int y, int width, int height, Draw_Color color)
         .r = color.r, .g = color.g, .b = color.b,
     };
 
-    Gpu_SpritePass pass = {
-        .spriteCount = 1,
-        .sprites = &sprite,
-        .texture = gDrawRectTexture,
-    };
+    Draw_SpriteNode *node = ArenaAlloc(&gDrawArena, sizeof(Draw_SpriteNode));
+    node->sprite = sprite;
+    node->next = NULL;
 
-    Gpu_SubmitSprites(pass);
+    if (!gDrawFirstSprite || !gDrawLastSprite)
+    {
+        gDrawFirstSprite = gDrawLastSprite = node;
+    }
+    else
+    {
+        gDrawLastSprite->next = node;
+        gDrawLastSprite = node;
+    }
 }
 
 void Draw_Grid(int spacing)
